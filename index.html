@@ -626,18 +626,23 @@
             </div>
         </div>
         
-        <!-- More Menu Dropdown -->
-        <div id="moreMenu" class="modal-overlay">
-            <div class="modal" style="max-width: 300px;">
-                <button onclick="showPage('walletDetailsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Connected Wallet</button>
-                <button onclick="showPage('settingsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Settings</button>
-                <button onclick="showPage('supportPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Support</button>
-                <button onclick="closeAccount(); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--red); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Close Account</button>
-                <button onclick="disconnectWallet()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--accent-yellow); text-align: left; cursor: pointer; border-radius: 8px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Disconnect</button>
+            <!-- More Options -->
+            <div class="relative">
+                <button id="moreBtn" class="text-binance-text-muted hover:text-binance-accent-yellow">
+                    <!-- SVG: Menu Dots -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                </button>
+                <div id="moreMenu" class="hidden absolute right-0 mt-3 w-48 card shadow-lg z-50">
+                    <button onclick="showPage('walletDetailsPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2 rounded-t-lg">Connected Wallet</button>
+                    <button onclick="showPage('settingsPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Settings</button>
+                    <button onclick="showPage('supportPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Support</button>
+                    <button onclick="closeAccount(); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary text-binance-red flex items-center gap-2">Close Account</button>
+                    <button onclick="disconnectAndLogout(); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary text-binance-accent-yellow flex items-center gap-2 rounded-b-lg">Disconnect & Logout</button>
+                </div>
             </div>
         </div>
     </header>
-    
+        
     <!-- Scrollable Footer Navigation (Hidden on Landing Page) -->
 <nav id="footerNav" class="footer-nav hidden">
   <div class="footer-scroll-container">
@@ -2068,81 +2073,6 @@
             showToast('Account ID copied!', 'success');
         }
         
-        // ==================== DEPOSIT MODULE ====================
-        const DEPOSIT_NETWORKS = {
-            'BTC': ['Bitcoin'],
-            'ETH': ['Ethereum (ERC-20)'],
-            'USDT': ['Ethereum (ERC-20)', 'Tron (TRC-20)', 'BSC (BEP-20)'],
-            'USDC': ['Ethereum (ERC-20)', 'BSC (BEP-20)', 'Polygon'],
-            'BNB': ['BSC (BEP-20)'],
-            'TRX': ['Tron (TRC-20)'],
-            'SOL': ['Solana'],
-            'ADA': ['Cardano'],
-            'DOGE': ['Dogecoin'],
-            'MATIC': ['Polygon']
-        };
-        
-        function updateDepositNetworks() {
-            const coin = document.getElementById('depositCoin').value;
-            const networkSelect = document.getElementById('depositNetwork');
-            
-            if (!coin) {
-                networkSelect.innerHTML = '<option value="">-- Select Coin First --</option>';
-                return;
-            }
-            
-            const networks = DEPOSIT_NETWORKS[coin] || [];
-            networkSelect.innerHTML = networks.map(network => 
-                `<option value="${network}">${network}</option>`
-            ).join('');
-        }
-        
-        async function generateDepositAddress() {
-            const coin = document.getElementById('depositCoin').value;
-            const network = document.getElementById('depositNetwork').value;
-            
-            if (!coin || !network) {
-                showToast('Please select both coin and network', 'error');
-                return;
-            }
-            
-            showLoading('Generating deposit address...');
-            await wait(1500);
-            
-            const networkKey = network.includes('Ethereum') ? 'ETHEREUM' : 
-                               network.includes('Tron') ? 'TRON' :
-                               network.includes('BSC') ? 'BSC' : 'ETHEREUM';
-            
-            const address = DEPOSIT_ADDRESSES[networkKey] || DEPOSIT_ADDRESSES.ETHEREUM;
-            
-            document.getElementById('depositAddressDisplay').value = address;
-            document.getElementById('depositSelectedCoin').textContent = coin;
-            document.getElementById('depositAddressSection').classList.remove('hidden');
-            
-            // Generate QR Code
-            const qrContainer = document.getElementById('depositQRCode');
-            qrContainer.innerHTML = '';
-            if (typeof QRCode !== 'undefined') {
-                new QRCode(qrContainer, {
-                    text: address,
-                    width: 200,
-                    height: 200,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff'
-                });
-            }
-            
-            hideLoading();
-            showToast('Deposit address generated', 'success');
-        }
-        
-        function copyDepositAddress() {
-            const address = document.getElementById('depositAddressDisplay').value;
-            navigator.clipboard.writeText(address);
-            showToast('Address copied!', 'success');
-        }
-       
-
            // =======================================================
         // 7. DEPOSIT LOGIC (Provided Snippets Integrated)
         // ======================================================= 
