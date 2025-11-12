@@ -626,15 +626,17 @@
             </div>
         </div>
         
-        <!-- More Menu Dropdown -->
-<div id="moreMenu" class="dropdown-menu">
-    <button onclick="showPage('walletDetailsPage'); toggleMoreMenu()">Connected Wallet</button>
-    <button onclick="showPage('settingsPage'); toggleMoreMenu()">Settings</button>
-    <button onclick="showPage('supportPage'); toggleMoreMenu()">Support</button>
-    <button onclick="closeAccount(); toggleMoreMenu()" class="danger">Close Account</button>
-    <button onclick="disconnectWallet(); toggleMoreMenu()" class="accent">Disconnect</button>
-</div>
-    </header>
+        
+ <!-- More Menu Dropdown -->
+        <div id="moreMenu" class="modal-overlay">
+            <div class="modal" style="max-width: 300px;">
+                <button onclick="showPage('walletDetailsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Connected Wallet</button>
+                <button onclick="showPage('settingsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Settings</button>
+                <button onclick="showPage('supportPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Support</button>
+                <button onclick="closeAccount(); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--red); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Close Account</button>
+                <button onclick="disconnectWallet()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--accent-yellow); text-align: left; cursor: pointer; border-radius: 8px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Disconnect</button>
+            </div>
+        </div>
     
     <!-- Footer Navigation (Hidden on Landing Page) -->
     <nav id="footerNav" class="footer-nav hidden">
@@ -832,109 +834,105 @@
     </div>
     
 
+<!-- 4. HOME PAGE -->
+<div id="homePage" class="page" style="background-color: #0b0b0b; color: #fff; font-family: 'Inter', sans-serif;">
+  <div class="container" style="max-width: 1100px; margin: 0 auto; padding: 24px;">
 
-<!-- ✅ FULL RESPONSIVE BINANCE-STYLE HOME PAGE -->
-<div id="homePage" class="page bg-[#0B0E11] text-white min-h-screen w-full flex justify-center">
-  <div class="container w-full max-w-5xl px-4 md:px-6 py-6 space-y-6">
-
-    <!-- Account Summary -->
-    <div class="rounded-2xl bg-[#1E2329] p-5 shadow-lg md:p-6">
-      <div class="flex items-center justify-between mb-4">
+    <!-- Header Summary -->
+    <div class="card" style="background: #131313; border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+      <div class="flex items-center justify-between mb-3">
         <div>
-          <p class="text-xs md:text-sm text-gray-400">Account ID</p>
-          <p id="homeAccountId" class="font-mono text-yellow-400 font-semibold text-base md:text-lg">Loading...</p>
+          <p class="text-sm" style="color: #b0b0b0;">Account ID</p>
+          <p id="homeAccountId" style="font-size: 18px; font-weight: 700; color: #f3ba2f;">Loading...</p>
         </div>
-        <button onclick="copyAccountId()" class="p-2 rounded-full bg-[#2B3139] hover:bg-[#333842] transition">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" viewBox="0 0 24 24">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        <button onclick="copyAccountId()" class="btn-icon" style="color: #f3ba2f; background: none; border: none; cursor: pointer;">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
         </button>
       </div>
 
-      <div class="mb-5 text-center md:text-left">
-        <p class="text-sm text-gray-400">Total Balance</p>
-        <h2 id="homeTotalBalance" class="text-3xl md:text-4xl font-extrabold text-yellow-400 mt-1">$0.00</h2>
+      <div class="mb-3">
+        <p class="text-sm" style="color: #b0b0b0;">Total Balance</p>
+        <h2 id="homeTotalBalance" style="font-size: 36px; font-weight: 800; color: #f3ba2f;">$0.00</h2>
       </div>
 
-      <div class="grid grid-cols-3 gap-3 md:gap-6 text-center">
+      <div class="grid grid-cols-3 gap-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
         <div>
-          <p class="text-xs text-gray-400">Trade</p>
-          <p id="homeTradeBalance" class="font-semibold">$0.00</p>
+          <p class="text-xs" style="color: #b0b0b0;">Trade Balance</p>
+          <p id="homeTradeBalance" style="font-weight: 600;">$0.00</p>
         </div>
         <div>
-          <p class="text-xs text-gray-400">Wallet</p>
-          <p id="homeWalletBalance" class="font-semibold">$0.00</p>
+          <p class="text-xs" style="color: #b0b0b0;">Wallet Balance</p>
+          <p id="homeWalletBalance" style="font-weight: 600;">$0.00</p>
         </div>
         <div>
-          <p class="text-xs text-gray-400">Earnings</p>
-          <p id="homeTotalEarnings" class="font-semibold text-green-400">$0.00</p>
+          <p class="text-xs" style="color: #b0b0b0;">Total Earnings</p>
+          <p id="homeTotalEarnings" style="font-weight: 600; color: #00c853;">$0.00</p>
         </div>
       </div>
     </div>
 
-    <!-- Quick Actions (Single Line, Responsive) -->
-    <div class="bg-[#1E2329] rounded-2xl shadow-md p-4 md:p-5">
-      <div class="flex justify-between items-center gap-4 md:gap-8 flex-wrap md:flex-nowrap">
-        <button onclick="showPage('depositPage')" class="flex flex-col items-center justify-center flex-1 focus:outline-none hover:opacity-90 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 md:w-10 md:h-10 mb-1 text-yellow-400" fill="none" stroke="currentColor"
-            stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19V6m0 0l-5 5m5-5l5 5" />
-          </svg>
-          <span class="text-xs md:text-sm font-medium">Deposit</span>
-        </button>
+    <!-- Quick Action Buttons (Single Line) -->
+    <div class="quick-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px;">
+      
+      <!-- Deposit -->
+      <button onclick="showPage('depositPage')" class="card"
+        style="flex: 1; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2b2b2b; border-radius: 12px; padding: 16px; color: #fff; cursor: pointer; transition: 0.3s;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f3ba2f" stroke-width="2" viewBox="0 0 24 24" width="22" height="22" style="margin-right: 8px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19V6m0 0l-7 7m7-7l7 7"/>
+        </svg>
+        <span style="font-weight: 600; font-size: 14px;">Deposit</span>
+      </button>
 
-        <button onclick="showPage('withdrawPage')" class="flex flex-col items-center justify-center flex-1 focus:outline-none hover:opacity-90 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 md:w-10 md:h-10 mb-1 text-yellow-400" fill="none" stroke="currentColor"
-            stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v13m0 0l5-5m-5 5l-5-5" />
-          </svg>
-          <span class="text-xs md:text-sm font-medium">Withdraw</span>
-        </button>
+      <!-- Withdraw -->
+      <button onclick="showPage('withdrawPage')" class="card"
+        style="flex: 1; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2b2b2b; border-radius: 12px; padding: 16px; color: #fff; cursor: pointer; transition: 0.3s;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f3ba2f" stroke-width="2" viewBox="0 0 24 24" width="22" height="22" style="margin-right: 8px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v13m0 0l7-7m-7 7l-7-7"/>
+        </svg>
+        <span style="font-weight: 600; font-size: 14px;">Withdraw</span>
+      </button>
 
-        <button onclick="showPage('transferPage')" class="flex flex-col items-center justify-center flex-1 focus:outline-none hover:opacity-90 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 md:w-10 md:h-10 mb-1 text-yellow-400" fill="none" stroke="currentColor"
-            stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M4 17l6-6m0 0l6 6m-6-6v12M20 7l-6 6m0 0l-6-6m6 6V1" />
-          </svg>
-          <span class="text-xs md:text-sm font-medium">Transfer</span>
-        </button>
+      <!-- Transfer -->
+      <button onclick="showPage('transferPage')" class="card"
+        style="flex: 1; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2b2b2b; border-radius: 12px; padding: 16px; color: #fff; cursor: pointer; transition: 0.3s;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f3ba2f" stroke-width="2" viewBox="0 0 24 24" width="22" height="22" style="margin-right: 8px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+        <span style="font-weight: 600; font-size: 14px;">Transfer</span>
+      </button>
 
-        <button onclick="showPage('tradePage')" class="flex flex-col items-center justify-center flex-1 focus:outline-none hover:opacity-90 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 md:w-10 md:h-10 mb-1 text-yellow-400" fill="none" stroke="currentColor"
-            stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8" />
-          </svg>
-          <span class="text-xs md:text-sm font-medium">Auto-Trade</span>
-        </button>
-      </div>
+      <!-- Auto-Trade -->
+      <button onclick="showPage('tradePage')" class="card"
+        style="flex: 1; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2b2b2b; border-radius: 12px; padding: 16px; color: #fff; cursor: pointer; transition: 0.3s;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f3ba2f" stroke-width="2" viewBox="0 0 24 24" width="22" height="22" style="margin-right: 8px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 3v18M7 7l4-4 4 4M13 21l4-4-4-4"/>
+        </svg>
+        <span style="font-weight: 600; font-size: 14px;">Auto-Trade</span>
+      </button>
     </div>
 
-    <!-- Market Chart -->
-    <div class="rounded-2xl bg-[#1E2329] p-5 shadow-md">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-base md:text-lg font-bold">Market Chart</h3>
-      </div>
-      <div id="homeChartContainer" class="tv-chart-container h-64 md:h-96 bg-[#0B0E11] rounded-lg"></div>
+    <!-- Trading Chart -->
+    <div class="card" style="background: #131313; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Market Chart</h3>
+      <div id="homeChartContainer" class="tv-chart-container" style="height: 300px; border-radius: 12px; background: #0d0d0d;"></div>
     </div>
 
     <!-- Recent Activity -->
-    <div class="rounded-2xl bg-[#1E2329] p-5 shadow-md mb-10">
+    <div class="card" style="background: #131313; border-radius: 16px; padding: 20px;">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-base md:text-lg font-bold">Recent Activity</h3>
-        <button onclick="showPage('activitiesPage')" class="text-xs md:text-sm text-yellow-400 hover:underline">View All</button>
+        <h3 style="font-size: 16px; font-weight: 700;">Recent Activity</h3>
+        <button onclick="showPage('activitiesPage')" style="background: none; border: none; color: #f3ba2f; cursor: pointer; font-size: 13px;">View All</button>
       </div>
-      <div id="homeRecentActivity" class="text-center py-5 text-gray-400 text-sm md:text-base">
-        No recent activity
+      <div id="homeRecentActivity">
+        <p class="text-sm text-secondary text-center" style="padding: 20px; color: #888;">No recent activity</p>
       </div>
     </div>
 
   </div>
 </div>
-  
-  
+
     
     <!-- 5. DEPOSIT PAGE -->
     <div id="depositPage" class="page">
