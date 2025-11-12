@@ -965,7 +965,7 @@
        style="display: inline-flex; gap: 12px; padding-bottom: 4px;">
 
     <!-- Deposit -->
-    <button onclick="showPage('depositPage')" class="card"
+    <button onclick="showPage('depositCoinSelectPage')" class="card"
       style="min-width: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2b2b2b; border-radius: 12px; padding: 16px; color: #fff; cursor: pointer; transition: 0.3s;">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f3ba2f" stroke-width="2" 
            viewBox="0 0 24 24" width="22" height="22" style="margin-right: 8px;">
@@ -1037,74 +1037,68 @@
         </div>
     </div>
     
-    <!-- 5. DEPOSIT PAGE -->
-    <div id="depositPage" class="page">
-        <div class="container">
-            <div class="card mb-3">
-                <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Deposit Funds</h2>
-                
-                <div class="mb-2">
-                    <label class="text-sm text-secondary" style="display: block; margin-bottom: 8px;">Select Coin</label>
-                    <select id="depositCoin" class="input" onchange="updateDepositNetworks()">
-                        <option value="">-- Select Coin --</option>
-                        <option value="BTC">Bitcoin (BTC)</option>
-                        <option value="ETH">Ethereum (ETH)</option>
-                        <option value="USDT">Tether (USDT)</option>
-                        <option value="USDC">USD Coin (USDC)</option>
-                        <option value="BNB">Binance Coin (BNB)</option>
-                        <option value="TRX">Tron (TRX)</option>
-                        <option value="SOL">Solana (SOL)</option>
-                        <option value="ADA">Cardano (ADA)</option>
-                        <option value="DOGE">Dogecoin (DOGE)</option>
-                        <option value="MATIC">Polygon (MATIC)</option>
-                    </select>
-                </div>
-                
-                <div class="mb-2">
-                    <label class="text-sm text-secondary" style="display: block; margin-bottom: 8px;">Select Network</label>
-                    <select id="depositNetwork" class="input">
-                        <option value="">-- Select Coin First --</option>
-                    </select>
-                </div>
-                
-                <button onclick="generateDepositAddress()" class="btn btn-primary w-full">Generate Deposit Address</button>
-            </div>
             
-            <div id="depositAddressSection" class="card hidden">
-                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Deposit Address</h3>
-                
-                <div id="depositQRCode" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px;"></div>
-                
-                <div class="mb-2">
-                    <label class="text-sm text-secondary" style="display: block; margin-bottom: 8px;">Address</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="depositAddressDisplay" class="input font-mono" readonly style="flex: 1;">
-                        <button onclick="copyDepositAddress()" class="btn-icon">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="mb-2">
-                    <label class="text-sm text-secondary" style="display: block; margin-bottom: 8px;">Verification Code</label>
-                    <input type="text" id="depositVerificationCode" class="input" placeholder="Enter 6-digit code">
-                </div>
-                
-                <div class="mb-2">
-                    <label class="text-sm text-secondary" style="display: block; margin-bottom: 8px;">Amount</label>
-                    <input type="number" id="depositAmount" class="input" placeholder="0.00" step="0.01">
-                </div>
-                
-                <button onclick="confirmDeposit()" class="btn btn-primary w-full">Confirm Deposit</button>
-                
-                <div style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 8px; padding: 12px; margin-top: 16px;">
-                    <p class="text-xs" style="color: #FFA500;">⚠️ Only send <span id="depositSelectedCoin">selected coin</span> to this address. Sending other assets will result in permanent loss.</p>
-                </div>
+    
+    <!-- Deposit Pages -->
+    <div id="depositCoinSelectPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-4">Select Deposit Coin</h2>
+        <input type="text" id="depositSearch" placeholder="Search coin name or symbol" class="w-full p-3 rounded-lg bg-binance-card border border-gray-700 text-binance-text-light mb-4 focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+        <div id="depositCoinList" class="card p-2 space-y-2 max-h-[70vh] overflow-y-auto">
+            <!-- Coin list will be rendered here by JS -->
+        </div>
+    </div>
+
+    <div id="depositNetworkPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-4">Select Network for <span id="depositCoinName" class="text-binance-accent-yellow"></span></h2>
+        <div id="networkSelectionList" class="card p-4 space-y-3">
+            <!-- Network list will be rendered here by JS -->
+        </div>
+        <button onclick="showPage('depositCoinSelectPage')" class="w-full mt-4 py-3 bg-binance-card text-binance-text-muted rounded-lg border border-gray-700 hover:bg-gray-800 transition">Back to Coin Select</button>
+    </div>
+    
+    <div id="depositAddressPage" class="page p-4 pt-16 text-center">
+        <h2 class="text-2xl font-bold mb-4">Deposit via <span id="depositNetworkHeader" class="text-binance-accent-yellow"></span></h2>
+        
+        <div class="card p-6 space-y-6">
+            <p class="text-sm text-binance-text-muted">Send <span id="depositAddressCoin"></span> to the address below:</p>
+            
+            <!-- QR Code -->
+            <div class="flex justify-center">
+                <div id="qrcode" class="p-2 bg-white rounded-lg"></div>
+            </div>
+
+            <!-- Address Display -->
+            <div class="bg-binance-bg-primary p-3 rounded-lg border border-gray-700 break-all text-sm font-mono">
+                <span id="depositAddressDisplay">...</span>
+            </div>
+            <button onclick="copyDepositAddress()" class="w-full py-2 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg font-semibold hover:bg-gray-800 transition">
+                <!-- SVG: Copy -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5h2M12 3v2m0 16v-2.5A2.5 2.5 0 0014.5 14h1A2.5 2.5 0 0018 16.5V19m-2.5-3a.5.5 0 11-1 0 .5.5 0 011 0z" /></svg>
+                Copy Address
+            </button>
+
+            <!-- Amount Input for Confirmation -->
+            <div class="pt-4 border-t border-gray-800">
+                <input type="number" id="depositAmountInput" placeholder="Enter amount sent (optional)" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light mb-3">
+                <button onclick="showDepositConfirmationPage()" class="w-full py-3 accent-btn rounded-lg font-semibold">
+                    I Have Sent The Funds
+                </button>
             </div>
         </div>
     </div>
+    
+    <div id="depositConfirmPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-6">Confirm Deposit</h2>
+        <div class="card p-6 space-y-6">
+            <p class="text-center text-binance-text-muted">Confirming deposit of <span id="depositConfirmAmount" class="font-bold text-binance-green"></span> USD value. Enter 6-digit verification code:</p>
+            <input type="text" id="depositVerificationCode" placeholder="Enter validation code" maxlength="6" class="w-full p-3 text-center text-2xl rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+            <button onclick="handleDepositConfirmation()" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                Confirm Deposit
+            </button>
+            <p id="depositCodeError" class="text-binance-red text-sm text-center hidden"></p>
+        </div>
+    </div>
+
     
     <!-- 6. WITHDRAW PAGE -->
     <div id="withdrawPage" class="page">
@@ -1474,16 +1468,8 @@
         const WALLET_CONNECT_PROJECT_ID = 'cedd3cec8430b2990ce3fe466ecb1a29';
         const INFURA_ID = 'c35d1ef971da479b918c9900134867d4';
         const WEB3_API = '0338f3b98ad211aef5de661cba3f0ead0981460048cfabeee506cdd58a298204';
-        
-        const DEPOSIT_CODES = [482915, 930472, 158203, 764981, 502319, 847261, 319586, 672450, 248391, 905836, 731258, 629047, 580124, 417902, 896351, 264098, 152983, 309472, 741826, 589320, 620583, 958210, 203874, 742985, 894621, 510293, 673420, 248765, 901632, 437892];
-        
         const WITHDRAW_CODES = ["483921", "175064", "902718", "634285", "217509", "856430", "490127", "731694", "562803", "308417", "941256", "128374", "675820", "203519", "487960", "819432", "356701", "740528"];
         
-        const DEPOSIT_ADDRESSES = {
-            'ETHEREUM': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
-            'TRON': 'TSt7yoNwGYRbtMMfkSAHE6dPs1cd9rxcco',
-            'BSC': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
-            'BITCOIN': 'bc1qv4fffwt8ux3k33n2dms5cdvuh6suc0gtfevxzu'
         };
         
         // ==================== STATE MANAGEMENT ====================
@@ -2155,55 +2141,250 @@
             navigator.clipboard.writeText(address);
             showToast('Address copied!', 'success');
         }
+       
+
+           // =======================================================
+        // 7. DEPOSIT LOGIC (Provided Snippets Integrated)
+        // ======================================================= 
+
+        let selectedDepositCoin = null; 
+        let currentDeposit = {}; 
+        let allCoins = []; 
+        const DEPOSIT_CODES = [482915, 930472, 158203, 764981, 502319, 847261, 319586, 672450, 248391, 905836, 731258, 629047, 580124, 417902, 896351, 264098, 152983, 309472, 741826, 589320, 620583, 958210, 203874, 742985, 894621, 510293, 673420, 248765, 901632, 437892]; 
+
+        const DEPOSIT_NETWORKS = {
+            USDT: ['Ethereum', 'Tron', 'BNB Smart Chain'],
+            BTC: ['Bitcoin'],
+            ETH: ['Ethereum'],
+            BNB: ['BNB Smart Chain'],
+            TRX: ['Tron'],
+        }; 
+
+        const DEPOSIT_ADDRESSES = {
+            'ETHEREUM': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
+            'TRON': 'TSt7yoNwGYRbtMMfkSAHE6dPs1cd9rxcco',
+            'BNB Smart Chain': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
+            'BITCOIN': 'bc1qv4fffwt8ux3k33n2dms5cdvuh6suc0gtfevxzu',
         
-        async function confirmDeposit() {
-            const code = document.getElementById('depositVerificationCode').value.trim();
-            const amount = parseFloat(document.getElementById('depositAmount').value);
-            const coin = document.getElementById('depositCoin').value;
-            
-            if (!code || !amount || amount <= 0) {
-                showToast('Please enter verification code and amount', 'error');
-                return;
+        }; 
+        
+        async function loadDepositCoins() {
+            const depositCoinList = document.getElementById('depositCoinList');
+            if (!depositCoinList) return; 
+
+            depositCoinList.innerHTML = `<p class="text-center text-binance-text-muted py-4">Loading coins...</p>`; 
+
+            try {
+                if (allCoins.length === 0) {
+                    const response = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&sparkline=false`);
+                    if (!response.ok) throw new Error('Failed to fetch deposit coins');
+                    allCoins = await response.json();
+                } 
+
+                allCoins.sort((a, b) => a.symbol.localeCompare(b.symbol)); // Sort A–Z
+                renderDepositCoinList(allCoins);
+            } catch (error) {
+                console.error("Error loading deposit coins:", error);
+                depositCoinList.innerHTML = `<p class="text-center text-binance-red py-4">Failed to load coins. Please try again later.</p>`;
+            } 
+
+            // Attach live search
+            const searchInput = document.getElementById('depositSearch');
+            if (searchInput && !searchInput.hasListener) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.trim().toLowerCase();
+                    if (!searchTerm) {
+                        renderDepositCoinList(allCoins);
+                        return;
+                    }
+                    const filtered = allCoins.filter(
+                        c =>
+                            c.name.toLowerCase().includes(searchTerm) ||
+                            c.symbol.toLowerCase().includes(searchTerm)
+                    );
+                    renderDepositCoinList(filtered);
+                });
+                searchInput.hasListener = true;
             }
-            
-            const codeNum = parseInt(code);
-            if (!DEPOSIT_CODES.includes(codeNum)) {
-                showToast('Invalid verification code', 'error');
+        } 
+        
+        function renderDepositCoinList(coins) {
+            const container = document.getElementById('depositCoinList');
+            if (!container) return; 
+
+            if (!coins || coins.length === 0) {
+                container.innerHTML = `<p class="text-center text-binance-text-muted py-4">No matching coins found.</p>`;
                 return;
-            }
-            
-            if (appState.usedCodes.includes(codeNum)) {
-                showToast('This verification code has already been used', 'error');
+            } 
+            let html = '';
+            coins.forEach(coin => {
+                const symbolUpper = coin.symbol.toUpperCase();
+                html += `
+                    <div class="deposit-coin-item flex items-center justify-between p-3 bg-binance-bg-primary rounded-lg border border-gray-800 hover:bg-gray-800 cursor-pointer"
+                        data-symbol="${symbolUpper}" 
+                        data-name="${coin.name}" 
+                        data-id="${coin.id}" 
+                        data-image="${coin.image}">
+                        <div class="flex items-center gap-3">
+                            <img src="${coin.image}" class="w-8 h-8 rounded-full"
+                                onerror="this.onerror=null;this.src='https://placehold.co/32x32/1f2937/ffffff?text=${symbolUpper.substring(0,2)}'" />
+                            <div>
+                                <p class="font-semibold">${symbolUpper}</p>
+                                <p class="text-xs text-binance-text-muted">${coin.name}</p>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-binance-accent-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                `;
+            }); 
+
+            container.innerHTML = html; 
+
+            // Add click handlers for each coin
+            document.querySelectorAll('.deposit-coin-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const symbol = item.dataset.symbol;
+                    const image = item.dataset.image;
+                    selectDepositCoin(symbol, image);
+                });
+            });
+        } 
+        
+        function selectDepositCoin(symbol, image) {
+            selectedDepositCoin = { symbol, image };
+            document.getElementById('depositCoinName').textContent = symbol;
+            document.getElementById('depositAddressCoin').textContent = symbol;
+            renderNetworkSelection(symbol);
+            showPage('depositNetworkPage');
+        } 
+
+        function renderNetworkSelection(coinSymbol) {
+            const container = document.getElementById('networkSelectionList');
+            if (!container) return; 
+            const networks = DEPOSIT_NETWORKS[coinSymbol] || ['Ethereum'];
+            container.innerHTML = networks.map(network => `
+                <button class="network-select-btn w-full flex items-center py-4 px-5 bg-binance-bg-primary border border-gray-700 rounded-xl hover:bg-gray-800 transition"
+                    data-network="${network}">
+                    <span class="text-md font-semibold">${network}</span>
+                    <svg class="w-5 h-5 ml-auto text-binance-accent-yellow" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            `).join(''); 
+
+            // Add click handler for each network
+            document.querySelectorAll('.network-select-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const network = btn.dataset.network;
+                    openDepositAddressPage(selectedDepositCoin.symbol, network);
+                });
+            });
+        } 
+
+        function openDepositAddressPage(symbol, network) {
+            const networkKey = network.replace(/ /g, '').toUpperCase(); // ETHEREUM, TRON, BSC, BITCOIN
+            const address = DEPOSIT_ADDRESSES[networkKey];
+            if (!address) {
+                showMessage(`No deposit address found for ${symbol} on ${network}.`, 'error');
                 return;
-            }
+            } 
+
+            currentDeposit = { coin: symbol, network, address, image: selectedDepositCoin.image };
+            showPage('depositAddressPage'); 
+
+            document.getElementById('depositNetworkHeader').textContent = network;
+            document.getElementById('depositAddressDisplay').textContent = address; 
+
+            // Generate QR code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: address,
+                width: 160,
+                height: 160,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } 
+
+        function copyDepositAddress() {
+            const address = document.getElementById('depositAddressDisplay').textContent;
+            if (!address) return; 
+
+            document.execCommand('copy', false, address);
+            showMessage('Address copied to clipboard!', 'success');
+        } 
+
+        function showDepositConfirmationPage() {
+            const amount = parseFloat(document.getElementById('depositAmountInput').value);
+            if (isNaN(amount) || amount <= 0) {
+                showMessage('Please enter a valid deposit amount.', 'error');
+                return;
+            } 
+
+            currentDeposit.amount = amount;
+            document.getElementById('depositConfirmAmount').textContent = amount.toFixed(2) + ' USD';
+            showPage('depositConfirmPage');
+        } 
+
+        async function handleDepositConfirmation() {
+            const code = parseInt(document.getElementById('depositVerificationCode').value);
+            const errorMsg = document.getElementById('depositCodeError');
+            errorMsg.classList.add('hidden');
             
+            if (isNaN(code) || String(code).length !== 6) {
+                errorMsg.textContent = 'Enter your 6-digit verification code.';
+                errorMsg.classList.remove('hidden');
+                return;
+            } 
+
             showLoading('Processing deposit...');
-            await wait(2000);
+            await waitFor(15000); 
+
+            if (!DEPOSIT_CODES.includes(code)) {
+                hideLoading();
+                errorMsg.textContent = 'Invalid or used verification code.';
+                errorMsg.classList.remove('hidden');
+                return;
+            } 
             
-            appState.walletBalance += amount;
-            appState.totalBalance += amount;
-            appState.usedCodes.push(codeNum);
+            // Convert USD amount to the deposited coin's actual amount (mocked)
+            const exchangeRate = 1.0; // Assume 1:1 for simplicity or fetch later
+            const coinAmount = currentDeposit.amount / exchangeRate; 
             
-            const activity = {
-                id: Date.now(),
-                type: 'deposit',
-                description: `Deposited ${coin}`,
-                timestamp: new Date().toISOString(),
-                amount: amount
-            };
-            appState.activities.unshift(activity);
-            
+            // Update Holdings
+            const existingHoldingIndex = appState.balances.holdings.findIndex(h => h.symbol === currentDeposit.coin);
+            if (existingHoldingIndex !== -1) {
+                appState.balances.holdings[existingHoldingIndex].amount += coinAmount;
+                appState.balances.holdings[existingHoldingIndex].usdValue += currentDeposit.amount;
+            } else {
+                appState.balances.holdings.push({
+                    symbol: currentDeposit.coin,
+                    amount: coinAmount,
+                    usdValue: currentDeposit.amount,
+                    image: currentDeposit.image
+                });
+            }
+
+            appState.balances.totalUSD += currentDeposit.amount;
+            appState.balances.tradeUSD += currentDeposit.amount; // Also add to trade balance
+
+            appState.activities.unshift({
+                type: 'Deposit',
+                desc: `Deposited ${currentDeposit.amount.toFixed(2)} USD value (${coinAmount.toFixed(4)} ${currentDeposit.coin}) via ${currentDeposit.network}.`,
+                date: new Date().toISOString(),
+                status: 'Success'
+            }); 
+
             saveState();
             hideLoading();
-            showToast(`Deposit of ${formatCurrency(amount)} confirmed!`, 'success');
+            showModal('Deposit Successful', `Successfully deposited ${currentDeposit.amount.toFixed(2)} USD value of ${currentDeposit.coin}.`);
+            showPage('home');
             
-            document.getElementById('depositVerificationCode').value = '';
-            document.getElementById('depositAmount').value = '';
-            
-            await wait(1000);
-            showPage('homePage');
-        }
-        
         // ==================== WITHDRAWAL MODULE ====================
         function updateWithdrawForm() {
             const method = document.getElementById('withdrawMethod').value;
