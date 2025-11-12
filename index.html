@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>💱 Auto-Trading Bot</title>
+
+    <!-- Favicon/Logo (Using the 💱 emoji as requested) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💱</text></svg>">
+
+    <!-- PWA Manifest Link (Generated via JS) -->
+    <link rel="manifest" id="pwa-manifest-link">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- TradingView Widget API -->
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <!-- QR Code Library for Deposit Addresses and Google Auth -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Web3Modal & WalletConnect Provider (CDNs) -->
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Binance Dark Theme Colors & General Styling */
+        :root {
+            --binance-bg-primary: #121418; /* Main background */
+            --binance-card: #1e2026;      /* Card/Panel background */
+            --binance-accent-yellow: #f0b90b; /* Primary accent color */
+            --binance-text-light: #f0f0f0;  /* White/light text */
+            --binance-text-muted: #848e9c; /* Muted gray text */
+            --binance-green: #16c784;     /* Green for gains */
+            --binance-red: #ea3943;       /* Red for losses */
+        }
+        body {
+            font-family: 'Inter', sans-serif, system-ui;
+            background-color: var(--binance-bg-primary);
+            color: var(--binance-text-light);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .page {
+            display: none;
+            padding-top: 56px; /* Space for fixed header */
+            padding-bottom: 70px; /* Space for fixed footer */
+            min-height: 100vh;
+        }
+        .header, .footer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background-color: var(--binance-bg-primary);
+            border-top: 1px solid #2b3139;
+        }
+        .header {
+            top: 0;
+            border-bottom: 1px solid #2b3139;
+        }
+        .footer {
+            bottom: 0;
+        }
+        .card {
+            background-color: var(--binance-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .accent-btn {
+            background-color: var(--binance-accent-yellow);
+            color: #121418;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .accent-btn:hover {
+            opacity: 0.9;
+        }
+        /* Custom scrollbar for chat */
+        #chatContent::-webkit-scrollbar {
+            width: 4px;
+        }
+        #chatContent::-webkit-scrollbar-thumb {
+            background: rgba(240, 185, 11, 0.5);
+            border-radius: 2px;
+        }
+
+        /* Responsive TradingView Container */
+        .tv-chart-container {
+            height: 300px; /* Default height */
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .install-prompt-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            background-color: var(--binance-card);
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+    </style>
+
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'binance-bg-primary': '#121418',
+                        'binance-card': '#1e2026',
+                        'binance-accent-yellow': '#f0b90b',
+                        'binance-green': '#16c784',
+                        'binance-red': '#ea3943',
+                        'binance-text-muted': '#848e9c',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-binance-bg-primary">
+
+    <!-- Global Message Box -->
+    <div id="messageBox" class="fixed top-2 right-2 z-50 p-3 rounded-lg shadow-xl text-sm transition-opacity duration-300 opacity-0 hidden"></div>
+    
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-binance-bg-primary/90 flex flex-col items-center justify-center z-[100] transition-opacity duration-300 hidden">
+        <svg class="animate-spin h-8 w-8 text-binance-accent-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p id="loadingMessage" class="mt-4 text-binance-text-light"></p>
+    </div>
+
+    <!-- PWA Install Prompt UI -->
+    <div id="installPromptContainer" class="fixed inset-0 bg-black/50 hidden z-50">
+        <div id="installPromptModal" class="install-prompt-modal text-center">
+            <h3 class="text-xl font-bold text-binance-accent-yellow">Install App</h3>
+            <p class="text-binance-text-light mt-2">Install Auto-Trading Bot for the best experience!</p>
+            <div class="flex justify-center gap-3 mt-4">
+                <button id="installNowBtn" class="accent-btn py-2 px-4 rounded-lg shadow-lg">Install Now</button>
+                <button id="maybeLaterBtn" class="bg-binance-card text-binance-text-muted py-2 px-4 rounded-lg border border-gray-700 hover:bg-gray-800 transition">Maybe Later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Header (For logged-in pages) -->
+    <header id="appHeader" class="header w-full p-3 flex justify-between items-center hidden">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl text-binance-accent-yellow">💱</span>
+            <span class="text-lg font-bold">Auto-Bot</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <!-- Search -->
+            <button onclick="showPage('marketPage')" class="text-binance-text-muted hover:text-binance-accent-yellow">
+                <!-- SVG: Search -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </button>
+            <!-- Notifications -->
+            <button id="notificationHeaderBtn" onclick="showPage('notificationsPage')" class="text-binance-text-muted hover:text-binance-accent-yellow relative">
+                <!-- SVG: Bell -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                <span id="activityBadge" class="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-binance-bg-primary bg-binance-red hidden"></span>
+            </button>
+            <!-- More Options -->
+            <div class="relative">
+                <button id="moreBtn" class="text-binance-text-muted hover:text-binance-accent-yellow">
+                    <!-- SVG: Menu Dots -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                </button>
+                <div id="moreMenu" class="hidden absolute right-0 mt-3 w-48 card shadow-lg z-50">
+                    <button onclick="showPage('walletDetailsPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2 rounded-t-lg">Connected Wallet</button>
+                    <button onclick="showPage('settingsPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Settings</button>
+                    <button onclick="showPage('supportPage'); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Support</button>
+                    <button onclick="closeAccount(); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary text-binance-red flex items-center gap-2">Close Account</button>
+                    <button onclick="disconnectAndLogout(); closeMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary text-binance-accent-yellow flex items-center gap-2 rounded-b-lg">Disconnect & Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ======================================================= -->
+<!-- PWA MARKET UPDATE BANNER (with Close Button) -->
+<!-- ======================================================= -->
+<div id="marketUpdateBanner" class="fixed top-0 left-0 right-0 pt-14 bg-binance-card text-center text-xs p-2 z-40 hidden flex justify-between items-center px-4">
+  <p id="marketUpdateText" class="flex-1 text-binance-text-light text-center"></p>
+
+  <!-- Close Button (X) -->
+  <button 
+    id="closeMarketUpdateBanner" 
+    class="ml-2 text-binance-text-muted hover:text-binance-accent-yellow transition"
+    onclick="document.getElementById('marketUpdateBanner').classList.add('hidden')">
+    <!-- SVG: X Icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</div>
+
+    <!-- MAIN CONTENT PAGES -->
+    <main id="mainContent">
+
+        <!-- 1. LANDING PAGE (CoinStats Style) -->
+        <div id="landingPage" class="page p-4 pt-16">
+            <!-- Header (Standalone for landing) -->
+            <div class="fixed top-0 left-0 right-0 bg-binance-bg-primary p-4 flex justify-between items-center z-50">
+                <div class="flex items-center gap-2">
+                    <span class="text-3xl text-binance-accent-yellow">💱</span>
+                    <h1 class="text-2xl font-extrabold">Auto-Trading Bot</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="showPage('loginIDPage')" class="text-binance-text-light text-sm font-semibold">Login ID</button>
+                    <div class="relative">
+                        <button id="landingMoreBtn" class="p-2 card rounded-full text-binance-text-light">
+                            <!-- SVG: Menu Dots -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                        </button>
+                        <div id="landingMoreMenu" class="hidden absolute right-0 mt-3 w-48 card shadow-lg z-50">
+                            <button onclick="connectWalletFlow(); closeLandingMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2 rounded-t-lg">Connect Portfolio</button>
+                            <button onclick="connectWalletFlow(); closeLandingMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Start Free Trail</button>
+                            <button onclick="showPage('loginIDPage'); closeLandingMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Login ID</button>
+                            <button onclick="showPage('supportPage'); closeLandingMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2">Support</button>
+                            <button onclick="connectWalletFlow(); closeLandingMoreMenu()" class="w-full text-left p-3 hover:bg-binance-bg-primary flex items-center gap-2 rounded-b-lg">Connect Wallet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Section -->
+            <div class="text-center mt-4">
+                <h2 class="text-3xl md:text-5xl font-extrabold leading-tight">Blockchain Auto-Trading System Bot</h2>
+                <p class="text-binance-text-muted mt-4 max-w-lg mx-auto">Harness the power of AI for seamless, high-frequency blockchain trading. Connect your portfolio to start maximizing your returns automatically.</p>
+                <div class="flex justify-center gap-4 mt-6">
+                    <button onclick="connectWalletFlow()" class="accent-btn py-3 px-6 rounded-full shadow-xl hover:opacity-90 transition">Connect Portfolio</button>
+                    <button onclick="connectWalletFlow()" class="bg-binance-card text-binance-text-light py-3 px-6 rounded-full border border-gray-700 hover:bg-gray-800 transition">Start Free Trial</button>
+                </div>
+                <button id="getMobileAppBtn" class="mt-4 text-binance-accent-yellow hover:underline text-sm font-semibold">Get Mobile App</button>
+            </div>
+
+            <!-- Market Overview -->
+            <div class="mt-12">
+                <h3 class="text-xl font-bold mb-4">Market Overview</h3>
+                <div id="marketOverviewStats" class="grid grid-cols-2 gap-4">
+                    <div class="card p-3 text-center">
+                        <p class="text-xs text-binance-text-muted">Total Market Cap</p>
+                        <p id="totalMarketCap" class="text-lg font-bold mt-1">...</p>
+                    </div>
+                    <div class="card p-3 text-center">
+                        <p class="text-xs text-binance-text-muted">24h Trading Volume</p>
+                        <p id="totalVolume" class="text-lg font-bold mt-1">...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Coins List -->
+            <div class="mt-8">
+                <h3 class="text-xl font-bold mb-4">Live Prices & Top Coins</h3>
+                <div class="card p-2">
+                    <div id="landingCoinList" class="space-y-1">
+                        <!-- Coin data will be rendered here -->
+                        <p class="text-center text-binance-text-muted p-4">Loading market data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. WALLET CONNECTOR PAGE -->
+        <div id="walletConnectPage" class="page p-6 flex flex-col items-center justify-center pt-16">
+            <div class="card p-6 w-full max-w-md space-y-6">
+                <h2 class="text-2xl font-bold text-center text-binance-accent-yellow">Connect Wallet</h2>
+                <p class="text-center text-binance-text-muted">Choose your connection method to link your portfolio.</p>
+
+                <!-- WalletConnect Button -->
+                <button id="walletConnectBtn" class="w-full py-3 px-6 accent-btn rounded-lg shadow-xl flex items-center justify-center gap-3 transition">
+                    <!-- SVG: WalletConnect Icon (Placeholder) -->
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 6.04L12 1L4.65 6.04L12 11.08L19.35 6.04ZM12 13.08L4.65 8.04L12 13.08L19.35 8.04L12 13.08ZM12 15.08L4.65 10.04L12 15.08L19.35 10.04L12 15.08ZM12 17.08L4.65 12.04L12 17.08L19.35 12.04L12 17.08Z"/></svg>
+                    Connect Mobile Wallet / Web3
+                </button>
+                
+                <div class="text-center text-binance-text-muted">OR</div>
+
+                <!-- Manual Connect Section -->
+                <div id="manualConnectSection" class="space-y-4">
+                    <input type="text" id="manualAddressInput" placeholder="Enter Wallet Address (or Mainnet Address)" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+                    <button id="manualConnectBtn" class="w-full py-3 px-6 bg-binance-green text-binance-bg-primary rounded-lg font-semibold shadow-xl transition">
+                        Connect Manually
+                    </button>
+                </div>
+                
+                <!-- Confirmation UI (Hidden initially) -->
+                <div id="connectionConfirmUI" class="hidden text-center space-y-4">
+                    <p class="text-lg font-semibold">Confirm Connection</p>
+                    <p id="confirmAddress" class="text-sm text-binance-text-muted truncate"></p>
+                    <button id="confirmConnectionBtn" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                        Confirm and Enter App
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. LOGIN ID PAGE -->
+        <div id="loginIDPage" class="page p-6 flex flex-col items-center justify-center pt-16">
+            <div class="card p-6 w-full max-w-sm space-y-6">
+                <h2 class="text-2xl font-bold text-center text-binance-accent-yellow">Login with Account ID</h2>
+                <p class="text-center text-binance-text-muted">Enter your 10-digit Account ID to securely access your portfolio.</p>
+                <input type="text" id="accountIDInput" placeholder="Enter 10-digit Account ID" maxlength="10" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+                <button id="confirmIDLoginBtn" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                    Confirm Login
+                </button>
+                <p id="loginIDError" class="text-binance-red text-sm text-center hidden">Invalid Account ID. Connect wallet to get an ID.</p>
+            </div>
+        </div>
+
+        
+<!-- ======================================================= -->
+<!-- 4. HOME PAGE (Binance Mobile App Style) -->
+<!-- ======================================================= -->
+<div id="home" class="page bg-black text-white min-h-screen font-sans pb-24 overflow-y-auto">
+
+  <!-- ===== 1. PORTFOLIO HEADER (Top Summary Section) ===== -->
+  <section class="px-4 pt-4 pb-2">
+    <div class="flex justify-between items-center">
+      <h2 class="text-sm text-gray-400 font-semibold">Total Balance (USD)</h2>
+      <button id="toggleBalanceVisibility" class="text-gray-400 hover:text-yellow-400 transition">
+        <!-- SVG: Eye Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex justify-between items-center mt-1">
+      <p id="totalBalanceDisplay" class="text-4xl font-extrabold text-white">$0.00</p>
+      <button onclick="showPage('walletDetailsPage')" class="text-gray-400 hover:text-yellow-400 transition">
+        <!-- SVG: Wallet Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="text-xs text-gray-500 mt-1">Account ID: <span id="homeAccountID" class="text-yellow-400">...</span></div>
+  </section>
+
+  <!-- ===== 2. ACTION BUTTONS (Deposit, Withdraw, Earn, Trade) ===== -->
+  <section class="grid grid-cols-4 text-center py-4 border-b border-gray-800">
+    <button onclick="showPage('depositCoinSelectPage')" class="flex flex-col items-center space-y-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      <span class="text-xs font-semibold text-gray-300">Deposit</span>
+    </button>
+
+    <button onclick="showWithdrawalTypeSheet()" class="flex flex-col items-center space-y-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 12m4-4v12" />
+      </svg>
+      <span class="text-xs font-semibold text-gray-300">Withdraw</span>
+    </button>
+
+    <button onclick="showPage('earnPage')" class="flex flex-col items-center space-y-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8c1.657 0 3 1.343 3 3 0 1.933-3 6-3 6s-3-4.067-3-6c0-1.657 1.343-3 3-3z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 2v2m0 16v2m10-10h-2M4 12H2" />
+      </svg>
+      <span class="text-xs font-semibold text-gray-300">Earn</span>
+    </button>
+
+    <button onclick="showPage('tradePage')" class="flex flex-col items-center space-y-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>
+      <span class="text-xs font-semibold text-gray-300">Trade</span>
+    </button>
+  </section>
+
+<!-- ===== 5. TRENDING COINS / LIVE CHART ===== -->
+<section class="px-4 mt-3">
+<h2 class="text-lg font-semibold mb-3">Live Price Performance (BTC/USDT)</h2>
+    <div class="bg-card rounded-xl overflow-hidden p-0" style="height: 300px;">
+<div id="tvchart" class="w-full h-full"></div>
+                
+  </section>
+        
+        
+
+  <!-- ===== 4. TOKEN HOLDINGS ===== -->
+  <section class="px-4 mt-6">
+    <h3 class="text-sm font-semibold text-gray-300 mb-2">Your Assets</h3>
+    <div class="bg-gray-900 rounded-2xl p-4">
+      <div id="tokenHoldingsList" class="space-y-3">
+        <p id="holdingsEmpty" class="text-gray-500 text-center text-sm">No token holdings yet. Deposit to start trading.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 6. ACTIVITIES / ALERTS ===== -->
+  <section class="px-4 mt-6 mb-8">
+    <h3 class="text-sm font-semibold text-gray-300 mb-2">Recent Activities</h3>
+    <div id="activitiesHomeSummary" class="bg-gray-900 rounded-2xl p-4 space-y-3">
+      <div id="noActivities" class="text-gray-500 text-center text-xs">No recent activity.</div>
+      <button onclick="showPage('transactionsPage')" class="w-full text-center text-xs text-yellow-400 hover:underline mt-2">
+        View All Transactions
+      </button>
+    </div>
+  </section>
+
+</div>
+        
+
+        <!-- 5. MARKET PAGE -->
+        <div id="marketPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">Markets</h2>
+            <div class="flex space-x-2 mb-4">
+                <button onclick="renderMarkets('A-Z')" class="py-2 px-4 rounded-lg bg-binance-card text-binance-accent-yellow">A-Z</button>
+                <button onclick="renderMarkets('gainers')" class="py-2 px-4 rounded-lg bg-binance-card hover:bg-gray-800">Top Gainers</button>
+                <button onclick="renderMarkets('losers')" class="py-2 px-4 rounded-lg bg-binance-card hover:bg-gray-800">Top Losers</button>
+            </div>
+            
+            <div class="card p-4">
+                <div id="marketCoinList" class="space-y-3">
+                    <p class="text-center text-binance-text-muted p-4">Loading market data...</p>
+                    <!-- Coin list will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Modal for coin details/chart -->
+            <div id="marketChartModal" class="fixed inset-0 bg-binance-bg-primary/95 hidden z-50 p-4 pt-10">
+                <button onclick="document.getElementById('marketChartModal').classList.add('hidden')" class="absolute top-4 right-4 text-binance-text-light">
+                    <!-- SVG: Close -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <h3 id="marketChartTitle" class="text-xl font-bold mb-4"></h3>
+                <div id="marketModalChart" class="tv-chart-container bg-gray-900 card"></div>
+            </div>
+        </div>
+
+        <!-- 6. TRADE PAGE (TradingView Style) -->
+        <div id="tradePage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">AI Auto-Trade</h2>
+
+            <!-- Trade Balance & Returns -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="card p-4">
+                    <p class="text-xs text-binance-text-muted">Total Trade Balance</p>
+                    <p id="tradeBalanceDisplay" class="text-xl font-bold mt-1">$0.00</p>
+                </div>
+                <div class="card p-4">
+                    <p class="text-xs text-binance-text-muted">Total Generated Returns</p>
+                    <p id="tradeReturnsDisplay" class="text-xl font-bold mt-1 text-binance-green">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Trade Actions -->
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="showTradeDepositTransferSheet('deposit')" class="py-2 px-4 bg-binance-green text-binance-bg-primary rounded-lg font-semibold">Deposit</button>
+                <button onclick="showTradeDepositTransferSheet('transfer')" class="py-2 px-4 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg font-semibold">Transfer</button>
+                <button onclick="showPage('earningsPage')" class="py-2 px-4 bg-binance-card text-binance-text-light border border-gray-700 rounded-lg font-semibold">View Earnings</button>
+            </div>
+            
+            <!-- Live Trade Chart -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold mb-3">Live Trading Chart (<span id="tradeAssetSymbol">BTC/USDT</span>)</h3>
+                <div id="tradeLiveChart" class="tv-chart-container bg-gray-900 card"></div>
+            </div>
+
+            <!-- Place Trade Section -->
+            <div id="placeTradeSection" class="card p-4 space-y-4">
+                <h3 class="text-lg font-bold">New AI Trade</h3>
+                
+                <div id="activeTradeStatus" class="p-3 bg-binance-green/20 rounded-lg border border-binance-green text-sm hidden">
+                    <p class="font-semibold text-binance-green">AI Trade Active:</p>
+                    <p id="tradeAssetDetails" class="text-binance-text-light"></p>
+                    <p id="tradeCountdown" class="mt-1 font-mono text-xs"></p>
+                </div>
+                
+                <button id="placeTradeBtn" onclick="showAssetSelectSheet()" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold shadow-md transition">
+                    Place Trade
+                </button>
+            </div>
+        </div>
+
+        <!-- 7. WALLET (PORTFOLIO) PAGE -->
+        <div id="walletDetailsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">My Wallet Details</h2>
+            <div class="card p-4 space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-binance-text-muted">User Account ID:</span>
+                    <span id="detailAccountID" class="font-semibold"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-binance-text-muted">Connected Address:</span>
+                    <span id="detailWalletAddress" class="font-semibold"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-binance-text-muted">Network:</span>
+                    <span id="detailWalletNetwork" class="font-semibold"></span>
+                </div>
+                <div class="flex justify-between border-t border-gray-800 pt-4">
+                    <span class="text-binance-text-muted font-bold">Total Deposit Balance:</span>
+                    <span id="detailWalletBalance" class="text-xl font-bold text-binance-green"></span>
+                </div>
+                <button onclick="disconnectAndLogout()" class="w-full py-2 bg-binance-red/20 text-binance-red rounded-lg mt-4 font-semibold hover:bg-binance-red/30 transition">
+                    Disconnect Wallet
+                </button>
+                <button onclick="showPage('accountDetailsPage')" class="w-full py-2 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg mt-2 font-semibold hover:bg-gray-800 transition">
+                    Secure Account / Account Details
+                </button>
+            </div>
+
+            <!-- Market Top Coins List (On Wallet Page) -->
+            <div class="mt-6">
+                <h3 class="text-xl font-bold mb-3">Market Top Coins</h3>
+                <div class="card p-2">
+                    <div id="walletCoinList" class="space-y-1">
+                        <p class="text-center text-binance-text-muted p-4">Loading market data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. ACCOUNT DETAILS / GOOGLE AUTH PAGE -->
+        <div id="accountDetailsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-6">Account & Security</h2>
+
+            <!-- Account ID Section -->
+            <div class="card p-4 space-y-2 mb-6">
+                <h3 class="text-lg font-bold text-binance-accent-yellow">Your Account ID</h3>
+                <p id="gaAccountID" class="font-mono text-xl"></p>
+            </div>
+            
+            <!-- Google Authenticator Section -->
+            <div class="card p-4 space-y-4">
+                <h3 class="text-xl font-bold">Google Authenticator Verification</h3>
+                <p class="text-sm text-binance-text-muted">Scan the QR code below or use the Secret Key to link your Google Authenticator App for 2FA.</p>
+                
+                <div class="flex justify-center card bg-binance-bg-primary p-4">
+                    <div id="ga-qrcode" class="p-2 bg-white rounded"></div>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-sm text-binance-text-muted">Secret Key:</p>
+                    <p id="gaSecretKey" class="font-mono text-lg font-bold text-binance-accent-yellow">Loading...</p>
+                </div>
+
+                <div class="pt-4 space-y-3 border-t border-gray-800">
+                    <input type="text" id="gaCodeInput" placeholder="Enter Google Authenticator 6-digit code" maxlength="6" class="w-full p-3 text-center rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+                    <button id="verifyGaCodeBtn" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                        Verify Code & Secure Account
+                    </button>
+                    <p id="gaStatus" class="text-center text-sm text-binance-red hidden"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. SETTINGS PAGE -->
+        <div id="settingsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-6">Settings</h2>
+
+            <!-- Notification Settings -->
+            <div class="card p-4 space-y-3">
+                <h3 class="text-lg font-bold">Notifications</h3>
+                <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                    <span class="text-binance-text-light">Receive Daily Market Updates</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="notificationToggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-binance-accent-yellow/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-binance-accent-yellow"></div>
+                    </label>
+                </div>
+                
+                <h3 class="text-lg font-bold pt-3">AI Trading Strategy</h3>
+                <select id="strategySelect" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+                    <option value="aggressive">Aggressive (High Risk/High Reward)</option>
+                    <option value="balanced">Balanced (Medium Risk)</option>
+                    <option value="conservative">Conservative (Low Risk)</option>
+                </select>
+            </div>
+
+            <div class="card p-4 space-y-3 mt-6">
+                <h3 class="text-lg font-bold text-binance-red">Account Management</h3>
+                <button onclick="closeAccount()" class="w-full py-2 bg-binance-red/20 text-binance-red rounded-lg font-semibold hover:bg-binance-red/30 transition">
+                    Close Account / Deactivate
+                </button>
+            </div>
+        </div>
+
+        <!-- 10. NOTIFICATIONS PAGE -->
+        <div id="notificationsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">Notifications & Alerts</h2>
+
+            <div class="card p-4 mb-4 flex justify-between items-center">
+                <span class="text-binance-text-light font-semibold">Daily Market Alerts</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="notificationsPageToggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-binance-accent-yellow/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-binance-accent-yellow"></div>
+                </label>
+            </div>
+
+            <div class="space-y-3" id="notificationList">
+                <div class="text-center text-binance-text-muted p-4">No recent notifications.</div>
+            </div>
+        </div>
+
+        <!-- 11. SUPPORT PAGE (Gemini Chatbot) -->
+        <div id="supportPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">Help & Support</h2>
+
+            <!-- FAQ Section -->
+            <div class="card p-4 mb-6 space-y-2">
+                <h3 class="text-lg font-bold">FAQ</h3>
+                <details class="text-sm border-b border-gray-800 pb-2">
+                    <summary class="font-semibold cursor-pointer text-binance-accent-yellow">What is the AI Trading Bot?</summary>
+                    <p class="text-binance-text-muted pt-2">It's a system that uses artificial intelligence to execute automated trades on your connected portfolio based on a selected strategy.</p>
+                </details>
+                <details class="text-sm">
+                    <summary class="font-semibold cursor-pointer text-binance-accent-yellow">How are my earnings calculated?</summary>
+                    <p class="text-binance-text-muted pt-2">The bot simulates generating 7.95% returns daily on the initial trade amount over the selected duration.</p>
+                </details>
+            </div>
+
+            <!-- Live Support Chat Bot -->
+            <div class="card p-4 h-96 flex flex-col">
+                <h3 class="text-lg font-bold mb-3">Live Support Chat (AI Powered)</h3>
+                <div id="chatContent" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
+                    <!-- Initial Bot Message -->
+                    <div class="flex justify-start">
+                        <div class="bg-binance-accent-yellow/20 p-3 rounded-lg max-w-xs text-sm">
+                            Hello! I'm your AI support bot. Ask me anything about trading or using the Auto-Trading Bot.
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Type your message..." class="flex-1 p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+                    <button id="chatSendBtn" class="accent-btn p-3 rounded-lg">
+                        <!-- SVG: Send -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. TRANSACTIONS & ACTIVITIES PAGE -->
+        <div id="transactionsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">Transactions & Activities</h2>
+            <div id="suspensionBanner" class="p-4 bg-binance-red/20 text-binance-red rounded-lg mb-4 hidden">
+                <p class="font-bold">Withdrawal Suspended</p>
+                <p class="text-sm">Functionality is suspended for 48 hours due to failed attempts. Remaining time: <span id="suspensionCountdown"></span></p>
+            </div>
+            <div id="fullActivitiesList" class="card p-4 space-y-4">
+                <p class="text-center text-binance-text-muted p-4">All transactions will appear here.</p>
+                <!-- Activities will be rendered here -->
+            </div>
+        </div>
+        
+        <!-- 13. EARNINGS PAGE -->
+        <div id="earningsPage" class="page p-4">
+            <h2 class="text-2xl font-bold mb-4">Trade Earnings</h2>
+            <div class="card p-4 mb-6">
+                <p class="text-xs text-binance-text-muted">Total Trade Earnings</p>
+                <p id="earningsTotalDisplay" class="text-3xl font-bold mt-1 text-binance-green">$0.00</p>
+                <div class="flex justify-end pt-3">
+                    <button onclick="showTransferSheet('tradeToMain')" class="py-2 px-4 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg font-semibold">Transfer to Main Wallet</button>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold mb-3">Performance Chart</h3>
+            <div id="earningsLiveChart" class="tv-chart-container bg-gray-900 card"></div>
+        </div>
+
+        <!-- 14. MARKET COIN CHART PAGE (Temporary page, uses modal now) -->
+        <!-- The request for a market coin chart page is now implemented as a modal within marketPage for better mobile UX. -->
+    
+    </main>
+
+    <!-- Global Footer (For logged-in pages) -->
+    <footer id="appFooter" class="footer w-full p-2 flex justify-around items-center hidden">
+        <button data-page="home" class="nav-tab flex flex-col items-center text-binance-accent-yellow">
+            <!-- SVG: Home -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+            <span class="text-xs">Home</span>
+        </button>
+        <button data-page="marketPage" class="nav-tab flex flex-col items-center text-binance-text-muted hover:text-binance-accent-yellow">
+            <!-- SVG: Market -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            <span class="text-xs">Markets</span>
+        </button>
+        <button data-page="tradePage" class="nav-tab flex flex-col items-center text-binance-text-muted hover:text-binance-accent-yellow">
+            <!-- SVG: Trade -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6" /></svg>
+            <span class="text-xs">Trade</span>
+        </button>
+        <button data-page="walletDetailsPage" class="nav-tab flex flex-col items-center text-binance-text-muted hover:text-binance-accent-yellow">
+            <!-- SVG: Wallet -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2a3.997 3.997 0 01-2.828-1.172A4 4 0 0112 8zm0 0v1.5a2.5 2.5 0 005 0V8m-5 9h5M3 6h18v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6z" /></svg>
+            <span class="text-xs">Wallet</span>
+        </button>
+    </footer>
+
+    <!-- Global Modals/Bottom Sheets (Hidden by default) -->
+
+    <!-- Modal for general messages/confirmation -->
+    <div id="globalModal" class="fixed inset-0 bg-black/75 hidden z-50 flex items-center justify-center">
+        <div class="card p-6 w-11/12 max-w-sm text-center space-y-4">
+            <h3 id="modalTitle" class="text-xl font-bold text-binance-accent-yellow"></h3>
+            <p id="modalMessage" class="text-binance-text-light"></p>
+            <button onclick="hideModal()" class="w-full py-2 accent-btn rounded-lg font-semibold">OK</button>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet for Withdrawal Type -->
+    <div id="withdrawalTypeSheet" class="fixed inset-x-0 bottom-0 bg-binance-card p-4 rounded-t-xl shadow-2xl z-50 transform translate-y-full transition-transform duration-300">
+        <h3 class="text-lg font-bold mb-4 border-b border-gray-800 pb-2">Select Withdrawal Type</h3>
+        <div class="space-y-3">
+            <button onclick="showWithdrawalDetailsPage('on-chain')" class="w-full p-4 bg-binance-bg-primary rounded-lg text-left hover:bg-gray-800 transition">
+                <p class="font-semibold">On-Chain Transfer</p>
+                <p class="text-xs text-binance-text-muted">Withdraw to external wallet address.</p>
+            </button>
+            <button onclick="showWithdrawalDetailsPage('account-id')" class="w-full p-4 bg-binance-bg-primary rounded-lg text-left hover:bg-gray-800 transition">
+                <p class="font-semibold">User Account ID Transfer</p>
+                <p class="text-xs text-binance-text-muted">Withdraw to another AI Bot user's ID.</p>
+            </button>
+        </div>
+        <button onclick="hideAllBottomSheets()" class="w-full mt-4 py-2 text-binance-text-muted hover:text-binance-accent-yellow">Cancel</button>
+    </div>
+
+    <!-- Withdrawal Details/Confirmation Pages (as pages within main) -->
+    <div id="withdrawalDetailsPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-4">Withdrawal Details</h2>
+        <div class="card p-4 space-y-4">
+            <input type="text" id="withdrawalAddress" placeholder="Enter Withdrawal Address/Account ID" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+            <button onclick="fillAddressFromConnectedWallet()" class="w-full py-2 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg text-sm hover:bg-gray-800 transition">
+                Or Fill from Connected Wallet
+            </button>
+
+            <div class="relative">
+                <button id="selectNetworkBtn" onclick="toggleWithdrawalNetworkDropdown()" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light flex justify-between items-center text-left">
+                    <span id="selectedNetworkDisplay">Select Network</span>
+                    <!-- SVG: Chevron Down -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div id="withdrawalNetworkDropdown" class="absolute w-full mt-1 card hidden z-40">
+                    <button data-network="Ethereum" onclick="selectWithdrawalNetwork('Ethereum')" class="w-full p-3 text-left hover:bg-binance-bg-primary">ETH Ethereum network</button>
+                    <button data-network="Bitcoin" onclick="selectWithdrawalNetwork('Bitcoin')" class="w-full p-3 text-left hover:bg-binance-bg-primary">BTC Bitcoin network</button>
+                    <button data-network="BSC" onclick="selectWithdrawalNetwork('BSC')" class="w-full p-3 text-left hover:bg-binance-bg-primary">BNB Smart Chain BEP20 Network</button>
+                    <button data-network="Tron" onclick="selectWithdrawalNetwork('Tron')" class="w-full p-3 text-left hover:bg-binance-bg-primary">Tron TRC 20 network</button>
+                </div>
+            </div>
+            
+            <div class="flex gap-2 items-center">
+                <input type="number" id="withdrawalAmount" placeholder="Enter withdrawal amount" class="flex-1 p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+                <button onclick="setMaxWithdrawalAmount()" class="py-3 px-4 bg-binance-card text-binance-accent-yellow rounded-lg font-semibold hover:bg-gray-800 transition">Max</button>
+            </div>
+
+            <p class="text-sm text-binance-text-muted pt-2 border-t border-gray-800">Gas Fee: <span id="gasFeeDisplay" class="font-semibold">0.034 BNB</span> (approx. $10.00)</p>
+            
+            <button onclick="showWithdrawalConfirmationPage()" id="finalWithdrawBtn" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold mt-4">
+                Withdraw
+            </button>
+            <p id="withdrawalError" class="text-binance-red text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <div id="withdrawalConfirmPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-6">Confirm Withdrawal (2FA)</h2>
+        <div class="card p-6 space-y-6">
+            <p class="text-center text-binance-text-muted">Enter the 6-digit validation code to confirm your withdrawal.</p>
+            <input type="text" id="withdrawalCode" placeholder="Enter validation code" maxlength="6" class="w-full p-3 text-center text-2xl rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+            <button onclick="handleWithdrawalConfirmation()" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                Submit
+            </button>
+            <p id="withdrawalCodeError" class="text-binance-red text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <div id="withdrawalProcessingPage" class="page p-4 pt-16 text-center flex flex-col items-center">
+        <h2 class="text-2xl font-bold text-binance-accent-yellow mb-6">Withdrawal Processing</h2>
+        <svg class="animate-pulse h-16 w-16 text-binance-accent-yellow mb-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div class="card p-6 w-full max-w-md space-y-3">
+            <p class="text-sm text-binance-text-muted">Withdrawal to:</p>
+            <p id="procAddress" class="font-semibold truncate text-binance-text-light"></p>
+            <p class="text-sm text-binance-text-muted border-t border-gray-800 pt-3">Network/Account:</p>
+            <p id="procNetwork" class="font-semibold text-binance-accent-yellow"></p>
+            <p class="text-sm text-binance-text-muted border-t border-gray-800 pt-3">Amount:</p>
+            <p id="procAmount" class="text-2xl font-bold text-binance-green"></p>
+            
+            <p class="text-sm text-binance-red font-bold pt-4 border-t border-gray-800">24-Hour Countdown:</p>
+            <p id="procCountdown" class="text-3xl font-mono text-binance-red"></p>
+            
+            <button onclick="showPage('transactionsPage')" class="w-full py-2 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg mt-4 font-semibold">
+                View Withdrawal Details
+            </button>
+        </div>
+    </div>
+    
+    <!-- Deposit Pages -->
+    <div id="depositCoinSelectPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-4">Select Deposit Coin</h2>
+        <input type="text" id="depositSearch" placeholder="Search coin name or symbol" class="w-full p-3 rounded-lg bg-binance-card border border-gray-700 text-binance-text-light mb-4 focus:ring-binance-accent-yellow focus:border-binance-accent-yellow">
+        <div id="depositCoinList" class="card p-2 space-y-2 max-h-[70vh] overflow-y-auto">
+            <!-- Coin list will be rendered here by JS -->
+        </div>
+    </div>
+
+    <div id="depositNetworkPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-4">Select Network for <span id="depositCoinName" class="text-binance-accent-yellow"></span></h2>
+        <div id="networkSelectionList" class="card p-4 space-y-3">
+            <!-- Network list will be rendered here by JS -->
+        </div>
+        <button onclick="showPage('depositCoinSelectPage')" class="w-full mt-4 py-3 bg-binance-card text-binance-text-muted rounded-lg border border-gray-700 hover:bg-gray-800 transition">Back to Coin Select</button>
+    </div>
+    
+    <div id="depositAddressPage" class="page p-4 pt-16 text-center">
+        <h2 class="text-2xl font-bold mb-4">Deposit via <span id="depositNetworkHeader" class="text-binance-accent-yellow"></span></h2>
+        
+        <div class="card p-6 space-y-6">
+            <p class="text-sm text-binance-text-muted">Send <span id="depositAddressCoin"></span> to the address below:</p>
+            
+            <!-- QR Code -->
+            <div class="flex justify-center">
+                <div id="qrcode" class="p-2 bg-white rounded-lg"></div>
+            </div>
+
+            <!-- Address Display -->
+            <div class="bg-binance-bg-primary p-3 rounded-lg border border-gray-700 break-all text-sm font-mono">
+                <span id="depositAddressDisplay">...</span>
+            </div>
+            <button onclick="copyDepositAddress()" class="w-full py-2 bg-binance-card text-binance-accent-yellow border border-gray-700 rounded-lg font-semibold hover:bg-gray-800 transition">
+                <!-- SVG: Copy -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5h2M12 3v2m0 16v-2.5A2.5 2.5 0 0014.5 14h1A2.5 2.5 0 0018 16.5V19m-2.5-3a.5.5 0 11-1 0 .5.5 0 011 0z" /></svg>
+                Copy Address
+            </button>
+
+            <!-- Amount Input for Confirmation -->
+            <div class="pt-4 border-t border-gray-800">
+                <input type="number" id="depositAmountInput" placeholder="Enter amount sent (optional)" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light mb-3">
+                <button onclick="showDepositConfirmationPage()" class="w-full py-3 accent-btn rounded-lg font-semibold">
+                    I Have Sent The Funds
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="depositConfirmPage" class="page p-4 pt-16">
+        <h2 class="text-2xl font-bold mb-6">Confirm Deposit</h2>
+        <div class="card p-6 space-y-6">
+            <p class="text-center text-binance-text-muted">Confirming deposit of <span id="depositConfirmAmount" class="font-bold text-binance-green"></span> USD value. Enter 6-digit verification code:</p>
+            <input type="text" id="depositVerificationCode" placeholder="Enter validation code" maxlength="6" class="w-full p-3 text-center text-2xl rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+            <button onclick="handleDepositConfirmation()" class="w-full py-3 px-6 accent-btn rounded-lg font-semibold">
+                Confirm Deposit
+            </button>
+            <p id="depositCodeError" class="text-binance-red text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet for Trade Asset Selection -->
+    <div id="assetSelectSheet" class="fixed inset-x-0 bottom-0 bg-binance-card p-4 rounded-t-xl shadow-2xl z-50 transform translate-y-full transition-transform duration-300">
+        <h3 class="text-lg font-bold mb-4 border-b border-gray-800 pb-2">Select Asset to Trade</h3>
+        <div id="tradeAssetList" class="space-y-3 max-h-64 overflow-y-auto">
+            <!-- Assets will be loaded from CoinGecko -->
+            <p class="text-center text-binance-text-muted p-4">Loading assets...</p>
+        </div>
+        <button onclick="hideAllBottomSheets()" class="w-full mt-4 py-2 text-binance-text-muted hover:text-binance-accent-yellow">Cancel</button>
+    </div>
+    
+    <!-- Bottom Sheet for Trade Duration Selection -->
+    <div id="durationSelectSheet" class="fixed inset-x-0 bottom-0 bg-binance-card p-4 rounded-t-xl shadow-2xl z-50 transform translate-y-full transition-transform duration-300">
+        <h3 class="text-lg font-bold mb-4 border-b border-gray-800 pb-2">Select Trade Duration</h3>
+        <div id="tradeDurationList" class="space-y-3 max-h-64 overflow-y-auto">
+            <!-- Durations will be generated here -->
+        </div>
+        <button onclick="hideAllBottomSheets()" class="w-full mt-4 py-2 text-binance-text-muted hover:text-binance-accent-yellow">Cancel</button>
+    </div>
+
+    <!-- Bottom Sheet for Trade Deposit/Transfer -->
+    <div id="tradeDepositTransferSheet" class="fixed inset-x-0 bottom-0 bg-binance-card p-4 rounded-t-xl shadow-2xl z-50 transform translate-y-full transition-transform duration-300">
+        <h3 id="tradeTransferTitle" class="text-lg font-bold mb-4 border-b border-gray-800 pb-2">Transfer Funds</h3>
+        <div id="tradeTransferContent" class="space-y-4">
+            <!-- Deposit/Transfer content will be dynamically loaded -->
+        </div>
+        <button onclick="hideAllBottomSheets()" class="w-full mt-4 py-2 text-binance-text-muted hover:text-binance-accent-yellow">Cancel</button>
+    </div>
+
+    <script>
+        // =======================================================
+        // 1. GLOBAL CONSTANTS & API KEYS
+        // =======================================================
+        const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+        const TRADINGVIEW_SYMBOL = 'BINANCE:BTCUSDT'; // Default symbol for charts
+        
+        // Withdrawal validation codes
+        const validWithdrawalCodes = ["483921", "175064", "902718", "634285", "217509", "856430", "490127", "731694", "562803", "308417", "941256", "128374", "675820", "203519", "487960", "819432", "356701", "740528"];
+        
+        // WalletConnect Config
+        const WALLET_CONNECT_PROJECT_ID = 'cedd3cec8430b2990ce3fe466ecb1a29';
+        const INFURA_ID = 'c35d1ef971da479b918c9900134867d4';
+        const WEB3_API_KEY = '0338f3b98ad211aef5de661cba3f0ead0981460048cfabeee506cdd58a298204'; // Not used in Web3Modal but kept for context
+
+        // Gemini API Configuration (Place an empty string to use the canvas provided key)
+        const GEMINI_API_KEY = ""; 
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+        
+        // =======================================================
+        // 2. APP STATE (Persistent via localStorage)
+        // =======================================================
+        const defaultState = {
+            isLoggedIn: false,
+            userId: null, 
+            walletAddress: null,
+            walletNetwork: null,
+            balances: {
+                totalUSD: 0.00,
+                tradeUSD: 0.00,
+                holdings: [] // {symbol, amount, usdValue, image}
+            },
+            activities: [],
+            trade: {
+                active: false,
+                asset: 'BINANCE:BTCUSDT', 
+                durationMonths: 0,
+                startTime: null,
+                initialAmount: 0,
+                totalReturns: 0
+            },
+            withdrawal: {
+                status: 'None', // 'None', 'Processing', 'Success', 'Suspended'
+                endTimeStamp: null, // For 24-hour countdown
+                amount: 0,
+                address: null,
+                network: null,
+                type: null
+            },
+            withdrawalAttempts: {
+                count: 0,
+                suspensionEndTimeStamp: null // For 48-hour suspension
+            },
+            settings: {
+                notificationsOn: true,
+                strategy: 'balanced'
+            },
+            currentPage: 'landingPage',
+            lastMarketUpdateTimestamp: 0,
+            notificationHistory: []
+        };
+
+        let appState = JSON.parse(localStorage.getItem('tradingBotState')) || defaultState;
+        let marketDataCache = [];
+        let deferredPrompt; // PWA installation event
+        let web3Modal, provider, selectedAddress;
+
+        // =======================================================
+        // 3. UTILITY FUNCTIONS
+        // =======================================================
+        function saveState() {
+            try {
+                // Ensure currentPage is up-to-date before saving
+                const activePage = document.querySelector('.page[style*="block"]');
+                if (activePage) {
+                    appState.currentPage = activePage.id;
+                }
+                localStorage.setItem('tradingBotState', JSON.stringify(appState));
+            } catch (error) {
+                console.error("Failed to save state:", error);
+            }
+        }
+
+        function loadState() {
+            try {
+                const storedState = JSON.parse(localStorage.getItem('tradingBotState'));
+                if (storedState) {
+                    appState = {...defaultState, ...storedState};
+                }
+            } catch (error) {
+                console.error("Failed to load state:", error);
+            }
+        }
+        
+        function generateAccountID() {
+            return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+        }
+
+        function shortenAddress(address) {
+            if (!address) return 'N/A';
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+
+        function waitFor(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function showMessage(message, type = 'info') {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.className = 'fixed top-2 right-2 z-50 p-3 rounded-lg shadow-xl text-sm transition-opacity duration-300';
+            
+            if (type === 'success') {
+                box.classList.add('bg-binance-green', 'text-binance-bg-primary', 'opacity-100');
+            } else if (type === 'error') {
+                box.classList.add('bg-binance-red', 'text-binance-text-light', 'opacity-100');
+            } else { // info/default
+                box.classList.add('bg-binance-card', 'text-binance-text-light', 'opacity-100', 'border', 'border-gray-700');
+            }
+            box.classList.remove('hidden');
+
+            setTimeout(() => {
+                box.classList.remove('opacity-100');
+                box.classList.add('opacity-0');
+                setTimeout(() => box.classList.add('hidden'), 300);
+            }, 5000);
+        }
+
+        function showLoading(message = 'Loading...') {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showModal(title, message) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('globalModal').classList.remove('hidden');
+        }
+
+        function hideModal() {
+            document.getElementById('globalModal').classList.add('hidden');
+        }
+        
+        function showPage(pageId, silent = false) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.style.display = 'none');
+            const activePage = document.getElementById(pageId);
+            if (activePage) {
+                activePage.style.display = 'block';
+                if (!silent) {
+                    appState.currentPage = pageId;
+                    saveState();
+                }
+
+                // Update Header/Footer visibility
+                const isLoggedIn = appState.isLoggedIn && pageId !== 'landingPage' && pageId !== 'walletConnectPage' && pageId !== 'loginIDPage';
+                document.getElementById('appHeader').classList.toggle('hidden', !isLoggedIn);
+                document.getElementById('appFooter').classList.toggle('hidden', !isLoggedIn);
+
+                // Re-render/init for specific pages
+                if (pageId === 'home') renderHomeUI();
+                if (pageId === 'marketPage') renderMarkets('A-Z');
+                if (pageId === 'tradePage') renderTradeUI();
+                if (pageId === 'walletDetailsPage') renderWalletDetails();
+                if (pageId === 'transactionsPage') renderFullActivitiesList();
+                if (pageId === 'settingsPage') renderSettingsUI();
+                if (pageId === 'notificationsPage') renderNotificationsUI();
+                if (pageId === 'supportPage') initChatBot();
+                if (pageId === 'accountDetailsPage') generateGoogleAuthQR();
+                if (pageId === 'depositCoinSelectPage') loadDepositCoins();
+            }
+        }
+        
+        function closeMoreMenu() {
+            document.getElementById('moreMenu')?.classList.add('hidden');
+        }
+
+        function closeLandingMoreMenu() {
+            document.getElementById('landingMoreMenu')?.classList.add('hidden');
+        }
+        
+        function hideAllBottomSheets() {
+            document.getElementById('withdrawalTypeSheet')?.classList.add('translate-y-full');
+            document.getElementById('assetSelectSheet')?.classList.add('translate-y-full');
+            document.getElementById('durationSelectSheet')?.classList.add('translate-y-full');
+            document.getElementById('tradeDepositTransferSheet')?.classList.add('translate-y-full');
+        }
+
+        // =======================================================
+        // 4. PWA LOGIC
+        // =======================================================
+        function setupPwa() {
+            // 4.1. Service Worker Registration
+            const swCode = `
+                self.addEventListener('install', (event) => {
+                    console.log('Service Worker installing.');
+                    event.waitUntil(
+                        caches.open('ai-bot-cache').then((cache) => {
+                            return cache.addAll(['./', 'https://cdn.tailwindcss.com', 'https://s3.tradingview.com/tv.js']);
+                        })
+                    );
+                });
+
+                self.addEventListener('fetch', (event) => {
+                    event.respondWith(
+                        caches.match(event.request).then((response) => {
+                            return response || fetch(event.request);
+                        })
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(swUrl)
+                    .then(reg => console.log('Service Worker registered.', reg))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            }
+
+            // 4.2. Manifest Injection
+            const manifestContent = {
+                "name": "Auto-Trading Bot",
+                "short_name": "AI-Bot",
+                "description": "Blockchain Auto-Trading Bot for the best experience!",
+                "start_url": "./",
+                "display": "standalone",
+                "background_color": "#121418",
+                "theme_color": "#f0b90b",
+                "icons": [
+                    {"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💱</text></svg>", "sizes": "512x512", "type": "image/svg+xml"}
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestContent)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            document.getElementById('pwa-manifest-link').href = manifestUrl;
+
+            // 4.3. Install Prompt Logic
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                // Show the "Get Mobile App" button now that we have the prompt
+                document.getElementById('getMobileAppBtn').style.display = 'block'; 
+            });
+
+            document.getElementById('installNowBtn').addEventListener('click', handleInstallApp);
+            document.getElementById('maybeLaterBtn').addEventListener('click', () => {
+                document.getElementById('installPromptContainer').classList.add('hidden');
+            });
+        }
+        
+        function showInstallPromptUI() {
+            if (deferredPrompt) {
+                document.getElementById('installPromptContainer').classList.remove('hidden');
+            } else {
+                showMessage("The app is already installed or your browser doesn't support installation.", 'info');
+            }
+        }
+
+        function handleInstallApp() {
+            document.getElementById('installPromptContainer').classList.add('hidden');
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showMessage('App installed successfully!', 'success');
+                    } else {
+                        showMessage('Installation cancelled.', 'info');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        // =======================================================
+        // 5. AUTHENTICATION & WALLET CONNECT LOGIC
+        // =======================================================
+
+        function initWeb3Modal() {
+            const providerOptions = {
+                walletconnect: {
+                    package: window.WalletConnectProvider.default,
+                    options: {
+                        infuraId: INFURA_ID, // Using Infura ID for WalletConnect
+                        projectId: WALLET_CONNECT_PROJECT_ID, // Using Project ID
+                    }
+                }
+                // Can add more providers here (e.g., Metamask, CoinbaseWallet)
+            };
+
+            web3Modal = new window.Web3Modal.default({
+                cacheProvider: false, // Don't cache by default for this simplified flow
+                providerOptions,
+                theme: 'dark'
+            });
+        }
+
+        async function connectWalletFlow() {
+            showPage('walletConnectPage');
+        }
+
+        async function connectWallet() {
+            try {
+                initWeb3Modal();
+                showLoading('Connecting to wallet...');
+                
+                provider = await web3Modal.connect();
+                const web3 = new Web3(provider);
+                const accounts = await web3.eth.getAccounts();
+                const chainId = await web3.eth.getChainId();
+
+                if (accounts.length === 0) throw new Error("No accounts found.");
+
+                selectedAddress = accounts[0];
+                const networkName = getNetworkName(chainId);
+
+                hideLoading();
+
+                // Show Confirmation UI
+                document.getElementById('connectionConfirmUI').classList.remove('hidden');
+                document.getElementById('walletConnectBtn').style.display = 'none';
+                document.getElementById('manualConnectSection').style.display = 'none';
+                document.getElementById('confirmAddress').textContent = shortenAddress(selectedAddress);
+                
+                // Store temporary connection details
+                provider.tempAddress = selectedAddress;
+                provider.tempNetwork = networkName;
+
+            } catch (e) {
+                hideLoading();
+                showMessage(`Connection failed: ${e.message}`, 'error');
+                // Ensure UI is reset on failure
+                document.getElementById('walletConnectBtn').style.display = 'block';
+                document.getElementById('manualConnectSection').style.display = 'block';
+                document.getElementById('connectionConfirmUI').classList.add('hidden');
+            }
+        }
+        
+        async function confirmWalletConnection() {
+            showLoading('Confirming connection...');
+            await waitFor(15000); // 15 seconds load
+
+            // Finalize login
+            const address = provider.tempAddress;
+            const network = provider.tempNetwork;
+
+            if (appState.walletAddress !== address) {
+                // First time connecting this address or new session.
+                appState.userId = generateAccountID();
+                appState.walletAddress = address;
+                appState.walletNetwork = network;
+                appState.balances.totalUSD = 100.00; // Give initial mock balance
+                appState.activities.unshift({ type: 'System', desc: `New account created and connected.`, date: new Date().toISOString(), status: 'Success' });
+                showModal('Welcome!', `Your Wallet is connected. Your new 10-digit Account ID is: ${appState.userId}`);
+            }
+
+            appState.isLoggedIn = true;
+            appState.currentPage = 'home';
+            saveState();
+            hideLoading();
+            showPage('home');
+        }
+
+        async function manualConnect() {
+            const address = document.getElementById('manualAddressInput').value.trim();
+            if (!address || address.length < 20) {
+                showMessage("Please enter a valid wallet address or mainnet address.", 'error');
+                return;
+            }
+
+            showLoading('Connecting manually...');
+            await waitFor(15000); // 15 seconds load
+
+            // Simulate fetching balance and creating ID
+            const simulatedBalance = Math.floor(Math.random() * 500) + 50; // $50 to $550
+            
+            if (appState.walletAddress !== address) {
+                appState.userId = generateAccountID();
+                appState.walletAddress = address;
+                appState.walletNetwork = 'Manual Connection';
+                appState.balances.totalUSD = simulatedBalance;
+                appState.activities.unshift({ type: 'System', desc: `Manual connection established.`, date: new Date().toISOString(), status: 'Success' });
+                showModal('Welcome!', `Your Address is connected. Your new 10-digit Account ID is: ${appState.userId}`);
+            }
+
+            appState.isLoggedIn = true;
+            appState.currentPage = 'home';
+            saveState();
+            hideLoading();
+            showPage('home');
+        }
+
+        async function loginWithID() {
+            const inputID = document.getElementById('accountIDInput').value.trim();
+            const errorElem = document.getElementById('loginIDError');
+            errorElem.classList.add('hidden');
+
+            if (inputID.length !== 10) {
+                errorElem.textContent = 'Account ID must be 10 digits.';
+                errorElem.classList.remove('hidden');
+                return;
+            }
+
+            showLoading('Logging in...');
+            await waitFor(15000); // 15 seconds load
+
+            if (inputID === appState.userId) {
+                appState.isLoggedIn = true;
+                appState.currentPage = 'home';
+                saveState();
+                hideLoading();
+                showPage('home');
+                showMessage('Login successful!', 'success');
+            } else {
+                hideLoading();
+                errorElem.textContent = 'Invalid Account ID. Connect wallet to get an ID.';
+                errorElem.classList.remove('hidden');
+            }
+        }
+
+        async function disconnectAndLogout() {
+            showLoading('Disconnecting wallet...');
+            await waitFor(15000); // 15 seconds load
+
+            if (provider && provider.close) {
+                await provider.close(); // WalletConnect specific disconnect
+            }
+            if (web3Modal) {
+                web3Modal.clearCachedProvider();
+            }
+
+            appState.isLoggedIn = false;
+            appState.walletAddress = null;
+            appState.walletNetwork = null;
+            appState.currentPage = 'landingPage';
+            // Note: We intentionally keep the userId and balances for recovery via Login ID
+
+            saveState();
+            hideLoading();
+            showPage('landingPage');
+            showMessage('Disconnected successfully. You can recover via your Account ID.', 'success');
+        }
+
+        async function closeAccount() {
+            showLoading('Disconnecting wallet and deactivating account...');
+            await waitFor(15000); // 15 seconds load
+
+            // Resetting state, which effectively 'deactivates' the functions linked to this ID
+            appState = {...defaultState, currentPage: 'landingPage'}; 
+            saveState();
+            hideLoading();
+            showPage('landingPage');
+            showModal('Account Closed', 'Your account has been successfully closed and deactivated. All data has been erased locally.');
+        }
+
+        function getNetworkName(chainId) {
+            switch (chainId) {
+                case 1: return "Ethereum Mainnet";
+                case 56: return "BNB Smart Chain";
+                case 137: return "Polygon Mainnet";
+                case 43114: return "Avalanche C-Chain";
+                default: return `Chain ID: ${chainId}`;
+            }
+        }
+
+// -------------------------------------------------------
+// Fetch Market Data from CoinGecko Public API
+// -------------------------------------------------------
+async function fetchMarketData() {
+    try {
+        // Fetch top 50 coins by market cap
+        const response = await fetch(
+            `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h`
+        );
+
+        if (!response.ok) throw new Error(`Failed to fetch market data. (${response.status})`);
+        const data = await response.json();
+        marketDataCache = data;
+
+        // Fetch global data (market cap, volume, dominance, etc.)
+        const globalResponse = await fetch(`${COINGECKO_API}/global`);
+        const globalData = await globalResponse.json();
+
+        // Render Landing Page Market Section
+        renderLandingPageMarket(globalData.data, data);
+
+        // If logged in, render user pages
+        if (appState?.isLoggedIn) {
+            renderHomeUI();
+            renderWalletMarketList(data);
+        }
+
+        // Render Market Page list if available
+        renderMarkets('default');
+
+    } catch (error) {
+        console.error("Error fetching market data:", error);
+        showMarketErrorMessage("Unable to load market data. Please check your internet connection.");
+    }
+}
+
+// -------------------------------------------------------
+// Render Landing Page Market Summary
+// -------------------------------------------------------
+function renderLandingPageMarket(globalData, coins) {
+    if (!globalData || !coins) return;
+
+    const cap = globalData.total_market_cap.usd || 0;
+    const vol = globalData.total_volume.usd || 0;
+
+    const capElement = document.getElementById('totalMarketCap');
+    const volElement = document.getElementById('totalVolume');
+    const listElement = document.getElementById('landingCoinList');
+
+    if (capElement) capElement.textContent = `$${(cap / 1e12).toFixed(2)}T`;
+    if (volElement) volElement.textContent = `$${(vol / 1e9).toFixed(2)}B`;
+
+    // Render Top 5 Coins
+    renderTopCoinsList(listElement, coins.slice(0, 5));
+}
+
+// -------------------------------------------------------
+// Render Wallet Market List
+// -------------------------------------------------------
+function renderWalletMarketList(coins) {
+    renderTopCoinsList(document.getElementById('walletCoinList'), coins.slice(0, 10));
+}
+
+// -------------------------------------------------------
+// Render Market Coins (List Component)
+// -------------------------------------------------------
+function renderTopCoinsList(container, coins) {
+    if (!container) return;
+
+    container.innerHTML = coins.map(coin => {
+        const priceChange = coin.price_change_percentage_24h?.toFixed(2) ?? 0;
+        const color = priceChange >= 0 ? 'text-binance-green' : 'text-binance-red';
+        const sign = priceChange >= 0 ? '+' : '';
+        const displaySymbol = coin.symbol.toUpperCase();
+
+        return `
+            <div 
+                class="flex items-center justify-between p-3 border-b border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-800 transition" 
+                onclick="showMarketChartModal('${displaySymbol}', 'BINANCE:${displaySymbol}USDT')"
+            >
+                <div class="flex items-center gap-3">
+                    <img 
+                        src="${coin.image}" 
+                        alt="${coin.name}" 
+                        class="w-6 h-6 rounded-full" 
+                        onerror="this.onerror=null;this.src='https://placehold.co/24x24/1f2937/ffffff?text=${displaySymbol.substring(0,2)}'"
+                    />
+                    <div>
+                        <p class="font-semibold">${displaySymbol}</p>
+                        <p class="text-xs text-binance-text-muted">${coin.name}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold">$${coin.current_price.toFixed(2).toLocaleString()}</p>
+                    <p class="text-xs ${color}">${sign}${priceChange}%</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (coins.length === 0) {
+        container.innerHTML = `<p class="text-center text-binance-text-muted p-4">No coins found.</p>`;
+    }
+}
+
+// -------------------------------------------------------
+// Render Markets Page with Sorting Options
+// -------------------------------------------------------
+function renderMarkets(sortType = 'default') {
+    if (!marketDataCache || marketDataCache.length === 0) return;
+
+    let coins = [...marketDataCache];
+
+    if (sortType === 'gainers') {
+        coins.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
+    } else if (sortType === 'losers') {
+        coins.sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h);
+    } else {
+        coins.sort((a, b) => a.symbol.localeCompare(b.symbol)); // A-Z default
+    }
+
+    renderTopCoinsList(document.getElementById('marketCoinList'), coins.slice(0, 50));
+}
+
+// -------------------------------------------------------
+// Handle Market Data Fetch Errors
+// -------------------------------------------------------
+function showMarketErrorMessage(message) {
+    const marketContainer = document.getElementById('marketCoinList') || document.getElementById('landingCoinList');
+    if (marketContainer) {
+        marketContainer.innerHTML = `
+            <div class="p-6 text-center text-binance-text-muted">
+                <p>${message}</p>
+                <button 
+                    onclick="fetchMarketData()" 
+                    class="mt-3 px-4 py-2 bg-yellow-500 text-black rounded-lg font-semibold hover:bg-yellow-400"
+                >
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+        function showMarketChartModal(symbol, tvSymbol) {
+            document.getElementById('marketChartTitle').textContent = `${symbol} Live Price Chart`;
+            const modal = document.getElementById('marketChartModal');
+            modal.classList.remove('hidden');
+            // Remove previous chart widget if exists
+            document.getElementById('marketModalChart').innerHTML = '';
+            
+            // Re-initialize TradingView widget inside the modal
+            initializeTradingViewChart('marketModalChart', tvSymbol);
+        }
+
+           // =======================================================
+        // 7. DEPOSIT LOGIC (Provided Snippets Integrated)
+        // ======================================================= 
+
+        let selectedDepositCoin = null; 
+        let currentDeposit = {}; 
+        let allCoins = []; 
+        const DEPOSIT_CODES = [482915, 930472, 158203, 764981, 502319, 847261, 319586, 672450, 248391, 905836, 731258, 629047, 580124, 417902, 896351, 264098, 152983, 309472, 741826, 589320, 620583, 958210, 203874, 742985, 894621, 510293, 673420, 248765, 901632, 437892]; 
+
+        const DEPOSIT_NETWORKS = {
+            USDT: ['Ethereum', 'Tron', 'BSC'],
+            BTC: ['Bitcoin'],
+            ETH: ['Ethereum'],
+            BNB: ['BNB Smart Chain'],
+            TRX: ['Tron'],
+            // Add other coins if they are top 5
+            SOL: ['Solana', 'Ethereum'],
+            XRP: ['Ripple'],
+        }; 
+
+        const DEPOSIT_ADDRESSES = {
+            'ETHEREUM': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
+            'TRON': 'TSt7yoNwGYRbtMMfkSAHE6dPs1cd9rxcco',
+            'BSC': '0xB36EDa1ffC696FFba07D4Be5cd249FE5E0118130',
+            'BITCOIN': 'bc1qv4fffwt8ux3k33n2dms5cdvuh6suc0gtfevxzu',
+            'SOLANA': '0xSolanaDepositAddressSimulated',
+            'RIPPLE': 'rSimulatedXrpAddress'
+        }; 
+        
+        async function loadDepositCoins() {
+            const depositCoinList = document.getElementById('depositCoinList');
+            if (!depositCoinList) return; 
+
+            depositCoinList.innerHTML = `<p class="text-center text-binance-text-muted py-4">Loading coins...</p>`; 
+
+            try {
+                if (allCoins.length === 0) {
+                    const response = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&sparkline=false`);
+                    if (!response.ok) throw new Error('Failed to fetch deposit coins');
+                    allCoins = await response.json();
+                } 
+
+                allCoins.sort((a, b) => a.symbol.localeCompare(b.symbol)); // Sort A–Z
+                renderDepositCoinList(allCoins);
+            } catch (error) {
+                console.error("Error loading deposit coins:", error);
+                depositCoinList.innerHTML = `<p class="text-center text-binance-red py-4">Failed to load coins. Please try again later.</p>`;
+            } 
+
+            // Attach live search
+            const searchInput = document.getElementById('depositSearch');
+            if (searchInput && !searchInput.hasListener) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.trim().toLowerCase();
+                    if (!searchTerm) {
+                        renderDepositCoinList(allCoins);
+                        return;
+                    }
+                    const filtered = allCoins.filter(
+                        c =>
+                            c.name.toLowerCase().includes(searchTerm) ||
+                            c.symbol.toLowerCase().includes(searchTerm)
+                    );
+                    renderDepositCoinList(filtered);
+                });
+                searchInput.hasListener = true;
+            }
+        } 
+        
+        function renderDepositCoinList(coins) {
+            const container = document.getElementById('depositCoinList');
+            if (!container) return; 
+
+            if (!coins || coins.length === 0) {
+                container.innerHTML = `<p class="text-center text-binance-text-muted py-4">No matching coins found.</p>`;
+                return;
+            } 
+            let html = '';
+            coins.forEach(coin => {
+                const symbolUpper = coin.symbol.toUpperCase();
+                html += `
+                    <div class="deposit-coin-item flex items-center justify-between p-3 bg-binance-bg-primary rounded-lg border border-gray-800 hover:bg-gray-800 cursor-pointer"
+                        data-symbol="${symbolUpper}" 
+                        data-name="${coin.name}" 
+                        data-id="${coin.id}" 
+                        data-image="${coin.image}">
+                        <div class="flex items-center gap-3">
+                            <img src="${coin.image}" class="w-8 h-8 rounded-full"
+                                onerror="this.onerror=null;this.src='https://placehold.co/32x32/1f2937/ffffff?text=${symbolUpper.substring(0,2)}'" />
+                            <div>
+                                <p class="font-semibold">${symbolUpper}</p>
+                                <p class="text-xs text-binance-text-muted">${coin.name}</p>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-binance-accent-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                `;
+            }); 
+
+            container.innerHTML = html; 
+
+            // Add click handlers for each coin
+            document.querySelectorAll('.deposit-coin-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const symbol = item.dataset.symbol;
+                    const image = item.dataset.image;
+                    selectDepositCoin(symbol, image);
+                });
+            });
+        } 
+        
+        function selectDepositCoin(symbol, image) {
+            selectedDepositCoin = { symbol, image };
+            document.getElementById('depositCoinName').textContent = symbol;
+            document.getElementById('depositAddressCoin').textContent = symbol;
+            renderNetworkSelection(symbol);
+            showPage('depositNetworkPage');
+        } 
+
+        function renderNetworkSelection(coinSymbol) {
+            const container = document.getElementById('networkSelectionList');
+            if (!container) return; 
+            const networks = DEPOSIT_NETWORKS[coinSymbol] || ['Ethereum'];
+            container.innerHTML = networks.map(network => `
+                <button class="network-select-btn w-full flex items-center py-4 px-5 bg-binance-bg-primary border border-gray-700 rounded-xl hover:bg-gray-800 transition"
+                    data-network="${network}">
+                    <span class="text-md font-semibold">${network}</span>
+                    <svg class="w-5 h-5 ml-auto text-binance-accent-yellow" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            `).join(''); 
+
+            // Add click handler for each network
+            document.querySelectorAll('.network-select-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const network = btn.dataset.network;
+                    openDepositAddressPage(selectedDepositCoin.symbol, network);
+                });
+            });
+        } 
+
+        function openDepositAddressPage(symbol, network) {
+            const networkKey = network.replace(/ /g, '').toUpperCase(); // ETHEREUM, TRON, BSC, BITCOIN
+            const address = DEPOSIT_ADDRESSES[networkKey];
+            if (!address) {
+                showMessage(`No deposit address found for ${symbol} on ${network}.`, 'error');
+                return;
+            } 
+
+            currentDeposit = { coin: symbol, network, address, image: selectedDepositCoin.image };
+            showPage('depositAddressPage'); 
+
+            document.getElementById('depositNetworkHeader').textContent = network;
+            document.getElementById('depositAddressDisplay').textContent = address; 
+
+            // Generate QR code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: address,
+                width: 160,
+                height: 160,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } 
+
+        function copyDepositAddress() {
+            const address = document.getElementById('depositAddressDisplay').textContent;
+            if (!address) return; 
+
+            document.execCommand('copy', false, address);
+            showMessage('Address copied to clipboard!', 'success');
+        } 
+
+        function showDepositConfirmationPage() {
+            const amount = parseFloat(document.getElementById('depositAmountInput').value);
+            if (isNaN(amount) || amount <= 0) {
+                showMessage('Please enter a valid deposit amount.', 'error');
+                return;
+            } 
+
+            currentDeposit.amount = amount;
+            document.getElementById('depositConfirmAmount').textContent = amount.toFixed(2) + ' USD';
+            showPage('depositConfirmPage');
+        } 
+
+        async function handleDepositConfirmation() {
+            const code = parseInt(document.getElementById('depositVerificationCode').value);
+            const errorMsg = document.getElementById('depositCodeError');
+            errorMsg.classList.add('hidden');
+            
+            if (isNaN(code) || String(code).length !== 6) {
+                errorMsg.textContent = 'Enter your 6-digit verification code.';
+                errorMsg.classList.remove('hidden');
+                return;
+            } 
+
+            showLoading('Processing deposit...');
+            await waitFor(15000); 
+
+            if (!DEPOSIT_CODES.includes(code)) {
+                hideLoading();
+                errorMsg.textContent = 'Invalid or used verification code.';
+                errorMsg.classList.remove('hidden');
+                return;
+            } 
+            
+            // Convert USD amount to the deposited coin's actual amount (mocked)
+            const exchangeRate = 1.0; // Assume 1:1 for simplicity or fetch later
+            const coinAmount = currentDeposit.amount / exchangeRate; 
+            
+            // Update Holdings
+            const existingHoldingIndex = appState.balances.holdings.findIndex(h => h.symbol === currentDeposit.coin);
+            if (existingHoldingIndex !== -1) {
+                appState.balances.holdings[existingHoldingIndex].amount += coinAmount;
+                appState.balances.holdings[existingHoldingIndex].usdValue += currentDeposit.amount;
+            } else {
+                appState.balances.holdings.push({
+                    symbol: currentDeposit.coin,
+                    amount: coinAmount,
+                    usdValue: currentDeposit.amount,
+                    image: currentDeposit.image
+                });
+            }
+
+            appState.balances.totalUSD += currentDeposit.amount;
+            appState.balances.tradeUSD += currentDeposit.amount; // Also add to trade balance
+
+            appState.activities.unshift({
+                type: 'Deposit',
+                desc: `Deposited ${currentDeposit.amount.toFixed(2)} USD value (${coinAmount.toFixed(4)} ${currentDeposit.coin}) via ${currentDeposit.network}.`,
+                date: new Date().toISOString(),
+                status: 'Success'
+            }); 
+
+            saveState();
+            hideLoading();
+            showModal('Deposit Successful', `Successfully deposited ${currentDeposit.amount.toFixed(2)} USD value of ${currentDeposit.coin}.`);
+            showPage('home');
+        } 
+
+        // =======================================================
+        // 8. WITHDRAWAL LOGIC
+        // =======================================================
+        
+        let currentWithdrawal = {};
+        
+        function showWithdrawalTypeSheet() {
+            document.getElementById('withdrawalTypeSheet').classList.remove('translate-y-full');
+        }
+
+        function showWithdrawalDetailsPage(type) {
+            hideAllBottomSheets();
+            currentWithdrawal.type = type;
+            document.getElementById('withdrawalAddress').placeholder = type === 'on-chain' ? 'Enter External Wallet Address' : 'Enter User Account ID';
+            document.getElementById('selectNetworkBtn').style.display = type === 'on-chain' ? 'flex' : 'none';
+            document.getElementById('gasFeeDisplay').parentNode.style.display = type === 'on-chain' ? 'block' : 'none';
+            showPage('withdrawalDetailsPage');
+        }
+
+        function fillAddressFromConnectedWallet() {
+            if (appState.walletAddress) {
+                document.getElementById('withdrawalAddress').value = appState.walletAddress;
+                showMessage("Connected wallet address filled.", 'info');
+            } else {
+                showMessage("No connected wallet found.", 'error');
+            }
+        }
+        
+        let selectedWithdrawalNetwork = null;
+        function toggleWithdrawalNetworkDropdown() {
+            document.getElementById('withdrawalNetworkDropdown').classList.toggle('hidden');
+        }
+        function selectWithdrawalNetwork(network) {
+            selectedWithdrawalNetwork = network;
+            document.getElementById('selectedNetworkDisplay').textContent = network;
+            document.getElementById('withdrawalNetworkDropdown').classList.add('hidden');
+        }
+
+        function setMaxWithdrawalAmount() {
+            document.getElementById('withdrawalAmount').value = appState.balances.totalUSD.toFixed(2);
+        }
+
+        function showWithdrawalConfirmationPage() {
+            const address = document.getElementById('withdrawalAddress').value.trim();
+            const amount = parseFloat(document.getElementById('withdrawalAmount').value);
+            const network = selectedWithdrawalNetwork;
+            const errorElem = document.getElementById('withdrawalError');
+            errorElem.classList.add('hidden');
+
+            if (!address || amount <= 0 || isNaN(amount) || (currentWithdrawal.type === 'on-chain' && !network)) {
+                errorElem.textContent = 'Please fill all required fields correctly.';
+                errorElem.classList.remove('hidden');
+                return;
+            }
+            if (amount > appState.balances.totalUSD) {
+                errorElem.textContent = 'Insufficient balance.';
+                errorElem.classList.remove('hidden');
+                return;
+            }
+            
+            // Check for suspension
+            checkWithdrawalSuspension();
+            if (appState.withdrawal.status === 'Suspended') {
+                showMessage(`Withdrawal suspended. Please wait until ${new Date(appState.withdrawalAttempts.suspensionEndTimeStamp).toLocaleString()}.`, 'error');
+                return;
+            }
+            
+            currentWithdrawal.address = address;
+            currentWithdrawal.amount = amount;
+            currentWithdrawal.network = network;
+
+            showPage('withdrawalConfirmPage');
+        }
+
+        async function handleWithdrawalConfirmation() {
+            const code = document.getElementById('withdrawalCode').value.trim();
+            const errorElem = document.getElementById('withdrawalCodeError');
+            errorElem.classList.add('hidden');
+            
+            if (!code) {
+                errorElem.textContent = 'Enter validation code.';
+                errorElem.classList.remove('hidden');
+                return;
+            }
+
+            showLoading('Validating code...');
+            await waitFor(15000);
+
+            if (validWithdrawalCodes.includes(code)) {
+                hideLoading();
+                appState.withdrawalAttempts.count = 0; // Reset attempts on success
+                startWithdrawalProcess();
+            } else {
+                hideLoading();
+                appState.withdrawalAttempts.count += 1;
+                saveState();
+                
+                if (appState.withdrawalAttempts.count >= 5) {
+                    appState.withdrawal.status = 'Suspended';
+                    appState.withdrawalAttempts.suspensionEndTimeStamp = Date.now() + 48 * 3600 * 1000;
+                    saveState();
+                    showMessage('Incorrect code 5 times. Withdrawal suspended for 48 hours.', 'error');
+                    showPage('home');
+                    return;
+                }
+                
+                errorElem.textContent = `Validation failed. Please enter correct code. Attempts left: ${5 - appState.withdrawalAttempts.count}`;
+                errorElem.classList.remove('hidden');
+            }
+        }
+
+        function startWithdrawalProcess() {
+            const endTime = Date.now() + 24 * 3600 * 1000; // 24 hours from now
+
+            appState.withdrawal = {
+                status: 'Processing',
+                endTimeStamp: endTime,
+                amount: currentWithdrawal.amount,
+                address: currentWithdrawal.address,
+                network: currentWithdrawal.network,
+                type: currentWithdrawal.type
+            };
+
+            appState.activities.unshift({
+                type: 'Withdrawal',
+                desc: `Processing withdrawal of $${currentWithdrawal.amount.toFixed(2)}.`,
+                date: new Date().toISOString(),
+                status: 'Processing',
+                endTime: endTime
+            });
+
+            saveState();
+            
+            // Update Processing Page UI
+            document.getElementById('procAddress').textContent = currentWithdrawal.address;
+            document.getElementById('procNetwork').textContent = currentWithdrawal.network || 'Account ID Transfer';
+            document.getElementById('procAmount').textContent = `$${currentWithdrawal.amount.toFixed(2)}`;
+
+            startWithdrawalCountdown();
+            showPage('withdrawalProcessingPage');
+        }
+
+        function startWithdrawalCountdown() {
+            const intervalId = setInterval(() => {
+                const now = Date.now();
+                const remaining = appState.withdrawal.endTimeStamp - now;
+
+                if (remaining <= 0) {
+                    clearInterval(intervalId);
+                    completeWithdrawal();
+                    return;
+                }
+
+                const timeStr = formatTime(remaining);
+                document.getElementById('procCountdown').textContent = timeStr;
+                document.getElementById('suspensionCountdown').textContent = timeStr; // Update activity page if visible
+                renderFullActivitiesList(); // Refresh activities to show countdown
+            }, 1000);
+        }
+
+        function completeWithdrawal() {
+            const { amount, address } = appState.withdrawal;
+
+            // Deduct from balance
+            appState.balances.totalUSD -= amount;
+            
+            // Reduce Tether USDT balance (mocking the specific request of 0.0680)
+            const usdtHoldingIndex = appState.balances.holdings.findIndex(h => h.symbol === 'USDT');
+            if (usdtHoldingIndex !== -1) {
+                appState.balances.holdings[usdtHoldingIndex].amount = 0.0680;
+                // Recalculate USD value based on new amount (approx. $0.0680 USD)
+                appState.balances.holdings[usdtHoldingIndex].usdValue = 0.0680; 
+            } else {
+                appState.balances.holdings.push({ symbol: 'USDT', amount: 0.0680, usdValue: 0.0680, image: 'https://assets.coingecko.com/coins/images/325/large/Tether.png?1668148663' });
+            }
+
+            // Update status in activities
+            const processingActivity = appState.activities.find(a => a.type === 'Withdrawal' && a.status === 'Processing');
+            if (processingActivity) {
+                processingActivity.status = 'Success';
+                processingActivity.desc = `Withdrawal successful of $${amount.toFixed(2)} to ${shortenAddress(address)}.`;
+                delete processingActivity.endTime;
+            }
+
+            // Reset withdrawal state
+            appState.withdrawal.status = 'Success';
+            appState.withdrawal.endTimeStamp = null;
+
+            saveState();
+            
+            // Show Success Pop-up (using the modal as a pop-up)
+            showModal('Withdrawal Successful', 
+                `Successfully processed withdrawal of $${amount.toFixed(2)} to ${currentWithdrawal.address}. USDT holding adjusted.`);
+            
+            renderHomeUI();
+            renderFullActivitiesList();
+        }
+
+        function checkWithdrawalSuspension() {
+            if (appState.withdrawal.status === 'Suspended' && appState.withdrawalAttempts.suspensionEndTimeStamp) {
+                const now = Date.now();
+                const remaining = appState.withdrawalAttempts.suspensionEndTimeStamp - now;
+                
+                if (remaining <= 0) {
+                    appState.withdrawal.status = 'None';
+                    appState.withdrawalAttempts.count = 0;
+                    appState.withdrawalAttempts.suspensionEndTimeStamp = null;
+                    saveState();
+                    showMessage('Withdrawal suspension lifted.', 'success');
+                } else {
+                    // Update banner on Transactions page
+                    document.getElementById('suspensionBanner').classList.remove('hidden');
+                    document.getElementById('suspensionCountdown').textContent = formatTime(remaining);
+                    return;
+                }
+            }
+            document.getElementById('suspensionBanner')?.classList.add('hidden');
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+
+        // =======================================================
+        // 9. TRADE LOGIC
+        // =======================================================
+        
+        async function loadTradeAssets() {
+            const tradeAssetList = document.getElementById('tradeAssetList');
+            if (!tradeAssetList) return;
+            
+            if (marketDataCache.length === 0) {
+                 tradeAssetList.innerHTML = `<p class="text-center text-binance-text-muted p-4">Market data not loaded. Please wait...</p>`;
+                 return;
+            }
+
+            tradeAssetList.innerHTML = marketDataCache.slice(0, 10).map(coin => {
+                const tvSymbol = `BINANCE:${coin.symbol.toUpperCase()}USDT`;
+                return `
+                    <button onclick="selectTradeAsset('${coin.symbol.toUpperCase()}', '${tvSymbol}')" class="w-full flex items-center gap-3 p-3 bg-binance-bg-primary rounded-lg border border-gray-700 hover:bg-gray-800 transition">
+                        <img src="${coin.image}" class="w-6 h-6 rounded-full" onerror="this.onerror=null;this.src='https://placehold.co/24x24/1f2937/ffffff?text=${coin.symbol.substring(0,2)}'" />
+                        <span class="font-semibold">${coin.symbol.toUpperCase()} / USDT</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function showAssetSelectSheet() {
+            if (appState.balances.tradeUSD <= 0) {
+                showModal("Funding Required", "Your total trade balance is $0.00. Please deposit or transfer funds to the trade account first.");
+                return;
+            }
+            loadTradeAssets();
+            document.getElementById('assetSelectSheet').classList.remove('translate-y-full');
+        }
+
+        function selectTradeAsset(symbol, tvSymbol) {
+            hideAllBottomSheets();
+            appState.trade.asset = tvSymbol;
+            saveState();
+            document.getElementById('tradeAssetSymbol').textContent = `${symbol}/USDT`;
+            initializeTradingViewChart('tradeLiveChart', tvSymbol);
+            showDurationSelectSheet();
+        }
+
+        function showDurationSelectSheet() {
+            const durationList = document.getElementById('tradeDurationList');
+            durationList.innerHTML = '';
+            for (let i = 1; i <= 12; i++) {
+                durationList.innerHTML += `
+                    <button onclick="placeTrade(${i})" class="w-full py-3 px-6 bg-binance-bg-primary rounded-lg border border-gray-700 hover:bg-gray-800 transition font-semibold">
+                        ${i} Month${i > 1 ? 's' : ''}
+                    </button>
+                `;
+            }
+            document.getElementById('durationSelectSheet').classList.remove('translate-y-full');
+        }
+
+        async function placeTrade(durationMonths) {
+            hideAllBottomSheets();
+            showLoading(`Starting AI trade for ${durationMonths} months...`);
+            await waitFor(15000); // 15 seconds loading
+
+            const initialAmount = appState.balances.tradeUSD;
+            const startTime = Date.now();
+            const assetSymbol = appState.trade.asset.split(':')[1];
+
+            appState.trade.active = true;
+            appState.trade.durationMonths = durationMonths;
+            appState.trade.startTime = startTime;
+            appState.trade.initialAmount = initialAmount;
+            appState.trade.totalReturns = 0; // Reset returns for new trade
+
+            appState.activities.unshift({
+                type: 'Trade',
+                desc: `AI trade initiated on ${assetSymbol} for ${durationMonths} months. Initial amount: $${initialAmount.toFixed(2)}.`,
+                date: new Date().toISOString(),
+                status: 'Active',
+                endTime: startTime + durationMonths * 30 * 24 * 3600 * 1000 // Approximate end time
+            });
+
+            saveState();
+            hideLoading();
+            showMessage(`Trade activated! Check the Trade page for status.`, 'success');
+            renderTradeUI(); // Update trade status UI
+            startTradeCountdown();
+        }
+
+        function startTradeCountdown() {
+            const intervalId = setInterval(() => {
+                if (!appState.trade.active) {
+                    clearInterval(intervalId);
+                    return;
+                }
+                
+                const now = Date.now();
+                const durationMs = appState.trade.durationMonths * 30 * 24 * 3600 * 1000;
+                const endTime = appState.trade.startTime + durationMs;
+                const remaining = endTime - now;
+                const dailyReturnRate = 0.0795; // 7.95% daily
+
+                if (remaining <= 0) {
+                    clearInterval(intervalId);
+                    completeTrade();
+                    return;
+                }
+
+                // Calculate Daily Returns
+                const daysPassed = (now - appState.trade.startTime) / (24 * 3600 * 1000);
+                // Simple compounded daily returns for simulation
+                const totalReturnFactor = Math.pow(1 + dailyReturnRate, daysPassed) - 1; 
+                appState.trade.totalReturns = appState.trade.initialAmount * totalReturnFactor;
+                saveState(); // Save returns constantly
+
+                // Update UI
+                const timeStr = formatTime(remaining);
+                document.getElementById('tradeCountdown').textContent = `Time Remaining: ${timeStr}`;
+                renderTradeUI();
+
+            }, 5000); // Update every 5 seconds for returns and countdown
+        }
+
+        function completeTrade() {
+            const finalEarnings = appState.trade.initialAmount + appState.trade.totalReturns;
+            
+            appState.activities.unshift({
+                type: 'Trade',
+                desc: `AI trade finished. Total earnings: $${finalEarnings.toFixed(2)}.`,
+                date: new Date().toISOString(),
+                status: 'Completed'
+            });
+            
+            // Move funds from trade balance back to total balance (including initial amount + returns)
+            appState.balances.totalUSD += appState.trade.totalReturns;
+            appState.balances.tradeUSD = 0;
+
+            // Reset trade state
+            appState.trade = defaultState.trade; 
+            
+            saveState();
+            showModal('Trade Completed', `Your AI trade has finished! Total Earnings: $${finalEarnings.toFixed(2)}.`);
+            renderTradeUI();
+        }
+
+        function showTradeDepositTransferSheet(mode) {
+            const sheet = document.getElementById('tradeDepositTransferSheet');
+            const titleElem = document.getElementById('tradeTransferTitle');
+            const contentElem = document.getElementById('tradeTransferContent');
+            
+            if (mode === 'deposit') {
+                titleElem.textContent = "Deposit to Trade Account";
+                contentElem.innerHTML = `
+                    <p class="text-sm text-binance-text-muted">To deposit, please use the main 'Deposit' function in your Home or Wallet pages.</p>
+                    <button onclick="showPage('depositCoinSelectPage'); hideAllBottomSheets()" class="w-full py-3 accent-btn rounded-lg font-semibold">
+                        Go to Deposit Page
+                    </button>
+                `;
+            } else { // 'transfer'
+                titleElem.textContent = "Transfer Funds";
+                contentElem.innerHTML = `
+                    <div class="relative">
+                        <select id="transferDirection" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light focus:ring-binance-accent-yellow focus:border-binance-accent-yellow mb-3">
+                            <option value="mainToTrade">Transfer to Trade Account (Main Balance: $${appState.balances.totalUSD.toFixed(2)})</option>
+                            <option value="tradeToMain">Transfer to Main Wallet (Trade Balance: $${appState.balances.tradeUSD.toFixed(2)})</option>
+                        </select>
+                    </div>
+                    <input type="number" id="transferAmountInput" placeholder="Enter transaction amount" class="w-full p-3 rounded-lg bg-binance-bg-primary border border-gray-700 text-binance-text-light">
+                    <button onclick="handleTradeTransfer()" class="w-full py-3 accent-btn rounded-lg font-semibold">
+                        Transfer
+                    </button>
+                    <p id="transferError" class="text-binance-red text-sm text-center hidden"></p>
+                `;
+            }
+            sheet.classList.remove('translate-y-full');
+        }
+
+        async function handleTradeTransfer() {
+            const direction = document.getElementById('transferDirection').value;
+            const amount = parseFloat(document.getElementById('transferAmountInput').value);
+            const errorElem = document.getElementById('transferError');
+            errorElem.classList.add('hidden');
+
+            if (isNaN(amount) || amount <= 0) {
+                errorElem.textContent = "Enter a valid amount.";
+                errorElem.classList.remove('hidden');
+                return;
+            }
+
+            let sourceBalance, destinationBalance;
+            let sourceField, destinationField;
+            let desc;
+
+            if (direction === 'mainToTrade') {
+                sourceBalance = appState.balances.totalUSD;
+                sourceField = 'totalUSD';
+                destinationField = 'tradeUSD';
+                desc = 'Transferred to Trade Account';
+            } else { // tradeToMain
+                sourceBalance = appState.balances.tradeUSD;
+                sourceField = 'tradeUSD';
+                destinationField = 'totalUSD';
+                desc = 'Transferred to Main Wallet';
+            }
+
+            if (amount > sourceBalance) {
+                errorElem.textContent = `Insufficient balance in source account ($${sourceBalance.toFixed(2)}).`;
+                errorElem.classList.remove('hidden');
+                return;
+            }
+
+            showLoading('Transaction processing...');
+            await waitFor(15000);
+
+            appState.balances[sourceField] -= amount;
+            appState.balances[destinationField] += amount;
+
+            appState.activities.unshift({
+                type: 'Transfer',
+                desc: `${desc}: $${amount.toFixed(2)}`,
+                date: new Date().toISOString(),
+                status: 'Success'
+            });
+
+            saveState();
+            hideLoading();
+            hideAllBottomSheets();
+            showMessage('Transfer successful!', 'success');
+            renderTradeUI();
+            renderHomeUI();
+        }
+
+        // =======================================================
+        // 10. UI RENDERING & CHARTS
+        // =======================================================
+        
+        function renderHomeUI() {
+            if (!appState.isLoggedIn) return;
+            
+            const totalBalance = appState.balances.totalUSD;
+            document.getElementById('homeAccountID').textContent = appState.userId;
+            document.getElementById('totalBalanceDisplay').textContent = `$${totalBalance.toFixed(2).toLocaleString()}`;
+            
+            // Holdings
+            const holdingsList = document.getElementById('tokenHoldingsList');
+            const holdingsData = appState.balances.holdings.filter(h => h.usdValue > 0.01);
+            
+            document.getElementById('holdingsEmpty').classList.toggle('hidden', holdingsData.length > 0);
+            
+            holdingsList.innerHTML = holdingsData.map(h => `
+                <div class="flex items-center justify-between border-b border-gray-800 pb-2 last:border-b-0">
+                    <div class="flex items-center gap-3">
+                        <img src="${h.image}" class="w-6 h-6 rounded-full" onerror="this.onerror=null;this.src='https://placehold.co/24x24/1f2937/ffffff?text=${h.symbol.substring(0,2)}'" />
+                        <div>
+                            <p class="font-semibold">${h.symbol.toUpperCase()}</p>
+                            <p class="text-xs text-binance-text-muted">${h.amount.toFixed(4)}</p>
+                        </div>
+                    </div>
+                    <p class="font-semibold">$${h.usdValue.toFixed(2).toLocaleString()}</p>
+                </div>
+            `).join('');
+
+            // Activities Summary
+            const latestActivity = appState.activities[0];
+            const activitiesSummary = document.getElementById('activitiesHomeSummary');
+            activitiesSummary.innerHTML = '';
+            
+            if (appState.withdrawal.status === 'Processing') {
+                checkWithdrawalSuspension(); // Re-check suspension status
+                activitiesSummary.innerHTML += `
+                    <div class="p-3 bg-binance-red/20 text-binance-red rounded-lg text-sm font-semibold">
+                        Withdrawal Processing: $${appState.withdrawal.amount.toFixed(2)}. Remaining: ${formatTime(appState.withdrawal.endTimeStamp - Date.now())}
+                    </div>
+                `;
+            } else if (appState.trade.active) {
+                 activitiesSummary.innerHTML += `
+                    <div class="p-3 bg-binance-green/20 text-binance-green rounded-lg text-sm font-semibold">
+                        Trade Active: $${appState.trade.totalReturns.toFixed(2)} Returns. Ends: ${formatTime(appState.trade.startTime + appState.trade.durationMonths * 30 * 24 * 3600 * 1000 - Date.now())}
+                    </div>
+                `;
+            }
+            
+            if (latestActivity && appState.withdrawal.status !== 'Processing' && !appState.trade.active) {
+                activitiesSummary.innerHTML += `<p class="text-sm text-binance-text-muted">${latestActivity.type} - ${latestActivity.desc}</p>`;
+            } else if (!appState.trade.active && appState.withdrawal.status !== 'Processing') {
+                 activitiesSummary.innerHTML += `<div id="noActivities" class="text-binance-text-muted text-center text-sm">No recent activities.</div>`;
+            }
+            
+            activitiesSummary.innerHTML += `<button onclick="showPage('transactionsPage')" class="w-full text-center text-sm text-binance-accent-yellow hover:underline mt-2">View All Transactions</button>`;
+
+            // Update footer active tab
+            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('text-binance-accent-yellow'));
+            document.querySelector('.nav-tab[data-page="home"]').classList.add('text-binance-accent-yellow');
+        }
+
+        function renderWalletDetails() {
+            document.getElementById('detailAccountID').textContent = appState.userId;
+            document.getElementById('detailWalletAddress').textContent = appState.walletAddress ? shortenAddress(appState.walletAddress) : 'N/A';
+            document.getElementById('detailWalletNetwork').textContent = appState.walletNetwork || 'N/A';
+            document.getElementById('detailWalletBalance').textContent = `$${appState.balances.totalUSD.toFixed(2).toLocaleString()}`;
+        }
+        
+        
+
+function renderTradeUI() {
+    document.getElementById('tradeBalanceDisplay').textContent = `$${appState.balances.tradeUSD.toFixed(2)}`;
+    document.getElementById('tradeReturnsDisplay').textContent = `$${appState.trade.totalReturns.toFixed(2)}`;
+    document.getElementById('earningsTotalDisplay').textContent = `$${appState.trade.totalReturns.toFixed(2)}`;
+    
+    const isActive = appState.trade.active;
+    const statusBox = document.getElementById('activeTradeStatus');
+    const placeBtn = document.getElementById('placeTradeBtn');
+    const assetSymbolElem = document.getElementById('tradeAssetSymbol');
+    
+    statusBox.classList.toggle('hidden', !isActive);
+    placeBtn.classList.toggle('hidden', isActive);
+
+    if (isActive) {
+        const tvSymbol = appState.trade.asset.split(':')[1];
+        assetSymbolElem.textContent = tvSymbol;
+        document.getElementById('tradeAssetDetails').textContent = 
+            `Asset: ${tvSymbol} | Initial: $${appState.trade.initialAmount.toFixed(2)} | Duration: ${appState.trade.durationMonths} months.`;
+        startTradeCountdown();
+    } else {
+        assetSymbolElem.textContent = 'BTCUSDT';
+    }
+
+    // ✅ Keep charts alive — Only create if not already created or asset changed
+    if (!tradeChartInstance || tradeChartInstance.asset !== appState.trade.asset) {
+        tradeChartInstance = initializeTradingViewChart('tradeLiveChart', appState.trade.asset);
+        tradeChartInstance.asset = appState.trade.asset;
+    }
+
+    if (!earningsChartInstance || earningsChartInstance.asset !== appState.trade.asset) {
+        earningsChartInstance = initializeTradingViewChart('earningsLiveChart', appState.trade.asset);
+        earningsChartInstance.asset = appState.trade.asset;
+    }
+
+    // Highlight active tab
+    document.querySelectorAll('.nav-tab').forEach(btn => 
+        btn.classList.remove('text-binance-accent-yellow')
+    );
+    document.querySelector('.nav-tab[data-page="tradePage"]').classList.add('text-binance-accent-yellow');
+   }
+
+        function renderFullActivitiesList() {
+            const container = document.getElementById('fullActivitiesList');
+            container.innerHTML = '';
+            checkWithdrawalSuspension(); // Update suspension status
+            
+            if (appState.activities.length === 0) {
+                container.innerHTML = `<p class="text-center text-binance-text-muted p-4">No activities recorded yet.</p>`;
+                return;
+            }
+
+            container.innerHTML = appState.activities.map(activity => {
+                let statusColor = 'text-binance-text-muted';
+                let statusIcon = 'ⓘ'; // Info
+
+                if (activity.status === 'Success') {
+                    statusColor = 'text-binance-green';
+                    statusIcon = '✅';
+                } else if (activity.status === 'Processing' || activity.status === 'Active') {
+                    statusColor = 'text-binance-accent-yellow';
+                    statusIcon = '⏳';
+                } else if (activity.type === 'Error') {
+                    statusColor = 'text-binance-red';
+                    statusIcon = '❌';
+                }
+                
+                let countdown = '';
+                if (activity.status === 'Processing' && activity.endTime) {
+                    const remaining = activity.endTime - Date.now();
+                    if (remaining > 0) {
+                        countdown = `<span class="text-xs text-binance-red font-mono ml-2">(${formatTime(remaining)} remaining)</span>`;
+                    }
+                } else if (activity.status === 'Active' && activity.endTime) {
+                    const remaining = activity.endTime - Date.now();
+                    if (remaining > 0) {
+                        countdown = `<span class="text-xs text-binance-green font-mono ml-2">(${formatTime(remaining)} left)</span>`;
+                    }
+                }
+
+                return `
+                    <div class="border-b border-gray-800 pb-3">
+                        <div class="flex justify-between items-start">
+                            <p class="font-semibold flex items-center gap-2">${statusIcon} ${activity.type}</p>
+                            <p class="text-xs text-binance-text-muted">${new Date(activity.date).toLocaleString()}</p>
+                        </div>
+                        <p class="text-sm text-binance-text-muted mt-1 break-words">${activity.desc}${countdown}</p>
+                        <p class="text-sm ${statusColor} font-semibold mt-1">${activity.status}</p>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('activityBadge').classList.toggle('hidden', appState.activities.length === 0 || appState.withdrawal.status === 'Suspended');
+        }
+        
+        function renderSettingsUI() {
+            document.getElementById('notificationToggle').checked = appState.settings.notificationsOn;
+            document.getElementById('strategySelect').value = appState.settings.strategy;
+        }
+
+        function renderNotificationsUI() {
+            document.getElementById('notificationsPageToggle').checked = appState.settings.notificationsOn;
+            const container = document.getElementById('notificationList');
+            
+            if (appState.notificationHistory.length === 0) {
+                container.innerHTML = `<div class="text-center text-binance-text-muted p-4">No recent notifications.</div>`;
+                return;
+            }
+
+            container.innerHTML = appState.notificationHistory.map(n => `
+                <div class="card p-4 space-y-1">
+                    <p class="text-sm font-bold text-binance-accent-yellow">${n.title}</p>
+                    <p class="text-sm text-binance-text-light">${n.message}</p>
+                    <p class="text-xs text-binance-text-muted">${new Date(n.timestamp).toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+       function initializeTradingViewChart(containerId, symbol) {
+             // TradingView widget requires the container to be visible when initialized.
+            if (typeof window.TradingView !== 'undefined' && document.getElementById(containerId)) {
+                new window.TradingView.widget({
+                    "container_id": containerId,
+                    "symbol": symbol,
+                    "interval": "D",
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#f1f3f6",
+                    "enable_publishing": false,
+                    "hide_side_toolbar": true,
+                    "allow_symbol_change": true,
+                    "save_image": false,
+                    "details": false,
+                    "hotlist": false,
+                    "calendar": false,
+                    "studies": [
+                        "MACD@tv-basicstudies",
+                        "StochasticRSI@tv-basicstudies"
+                    ]
+                });
+            }
+        }
+
+        // =======================================================
+        // 11. GEMINI CHATBOT LOGIC
+        // =======================================================
+        
+        let chatHistory = [];
+        
+        function initChatBot() {
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            
+            if (!chatSendBtn.hasListener) {
+                chatSendBtn.addEventListener('click', () => handleChatSubmit(chatInput.value));
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleChatSubmit(chatInput.value);
+                });
+                chatSendBtn.hasListener = true;
+            }
+
+            // Restore chat history if needed, though simple state is fine for this example
+            if (chatHistory.length === 0) {
+                 // Add initial message
+                addMessageToChat("Hello! I'm your AI support bot. Ask me anything about trading or using the Auto-Trading Bot.", 'bot');
+            } else {
+                // Re-render chat content
+                const chatContent = document.getElementById('chatContent');
+                chatContent.innerHTML = '';
+                chatHistory.forEach(msg => {
+                    addMessageToChat(msg.text, msg.role, false);
+                });
+            }
+        }
+        
+        function addMessageToChat(text, role, save = true) {
+            const chatContent = document.getElementById('chatContent');
+            const alignClass = role === 'user' ? 'justify-end' : 'justify-start';
+            const bgColor = role === 'user' ? 'bg-binance-accent-yellow/50' : 'bg-binance-card border border-gray-700';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${alignClass}`;
+            messageDiv.innerHTML = `
+                <div class="${bgColor} p-3 rounded-lg max-w-xs text-sm text-binance-text-light">
+                    ${text.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            chatContent.appendChild(messageDiv);
+            chatContent.scrollTop = chatContent.scrollHeight; // Scroll to bottom
+            
+            if (save) {
+                chatHistory.push({ role, text });
+            }
+        }
+
+        async function handleChatSubmit(message) {
+            const chatInput = document.getElementById('chatInput');
+            if (!message.trim()) return;
+
+            addMessageToChat(message.trim(), 'user');
+            chatInput.value = '';
+            
+            // Placeholder for bot response
+            const botMessageId = `bot-loading-${Date.now()}`;
+            addLoadingMessage(botMessageId);
+
+            try {
+                // Prepare API call
+                const userQuery = message.trim();
+                const systemPrompt = "You are a friendly and knowledgeable AI assistant for an Auto-Trading Bot application. Your role is to answer user questions about the app's features, trading concepts, and support issues. Keep your responses concise and helpful. Do not use markdown formatting like asterisks or bolding.";
+                
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    tools: [{ "google_search": {} }]
+                };
+
+                const response = await fetchWithBackoff(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't get a response right now. Please try again later.";
+                
+                removeLoadingMessage(botMessageId);
+                addMessageToChat(text, 'bot');
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                removeLoadingMessage(botMessageId);
+                addMessageToChat("I'm currently having trouble connecting. Please try again.", 'bot');
+            }
+        }
+
+        function addLoadingMessage(id) {
+            const chatContent = document.getElementById('chatContent');
+            const messageDiv = document.createElement('div');
+            messageDiv.id = id;
+            messageDiv.className = `flex justify-start`;
+            messageDiv.innerHTML = `
+                <div class="bg-binance-card border border-gray-700 p-3 rounded-lg max-w-xs text-sm">
+                    <svg class="animate-spin h-4 w-4 text-binance-accent-yellow inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    AI thinking...
+                </div>
+            `;
+            chatContent.appendChild(messageDiv);
+            chatContent.scrollTop = chatContent.scrollHeight;
+        }
+
+        function removeLoadingMessage(id) {
+            document.getElementById(id)?.remove();
+        }
+
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return response;
+                } catch (error) {
+                    // console.log(`Fetch attempt ${i + 1} failed. Retrying...`);
+                }
+                const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                if (i < maxRetries - 1) await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            throw new Error('All fetch attempts failed.');
+        }
+
+        // =======================================================
+        // 12. GOOGLE AUTHENTICATOR LOGIC (SIMULATED)
+        // =======================================================
+
+        function generateGoogleAuthQR() {
+            const qrContainer = document.getElementById('ga-qrcode');
+            const secretKeyElem = document.getElementById('gaSecretKey');
+            const accountIDElem = document.getElementById('gaAccountID');
+            
+            if (!appState.userId) return; // Should not happen if logged in
+
+            const secretKey = generateRandomSecret(16); // Simulate a 16-character secret
+            const issuer = 'AI Auto-Trading Bot';
+            const user = `UserID:${appState.userId}`;
+            const otpAuthUrl = `otpauth://totp/${issuer}:${user}?secret=${secretKey}&issuer=${issuer}`;
+
+            accountIDElem.textContent = appState.userId;
+            secretKeyElem.textContent = secretKey;
+            
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: otpAuthUrl,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Attach listener if not already present
+            const verifyBtn = document.getElementById('verifyGaCodeBtn');
+            if (!verifyBtn.hasListener) {
+                verifyBtn.addEventListener('click', handleGoogleAuthVerification);
+                verifyBtn.hasListener = true;
+            }
+        }
+
+        function generateRandomSecret(length) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+
+        async function handleGoogleAuthVerification() {
+            const code = document.getElementById('gaCodeInput').value.trim();
+            const statusElem = document.getElementById('gaStatus');
+            statusElem.classList.add('hidden');
+
+            if (code.length !== 6 || isNaN(parseInt(code))) {
+                statusElem.textContent = 'Please enter a valid 6-digit code.';
+                statusElem.classList.remove('hidden');
+                return;
+            }
+
+            showLoading('Verifying code...');
+            await waitFor(15000); // 15 seconds verification
+
+            hideLoading();
+            
+            // In a real app, this would use a library (like speakeasy) to check against the secret.
+            // Here, we simulate success for one code, and failure for others.
+            if (code === "123456") { // Simulated valid code
+                statusElem.textContent = 'Google Authenticator verified and linked successfully!';
+                statusElem.classList.remove('text-binance-red');
+                statusElem.classList.add('text-binance-green', 'block');
+                showMessage('Google Authenticator linked!', 'success');
+            } else {
+                statusElem.textContent = 'Verification failed. Incorrect code.';
+                statusElem.classList.remove('text-binance-green');
+                statusElem.classList.add('text-binance-red', 'block');
+            }
+        }
+
+        // =======================================================
+        // 13. DAILY MARKET UPDATE & NOTIFICATION
+        // =======================================================
+
+        async function loadDailyMarketUpdates() {
+            const now = Date.now();
+            // Check if 12 hours have passed since last update
+            if (now - appState.lastMarketUpdateTimestamp < 12 * 3600 * 1000) {
+                 // Still update the banner if there are unread notifications
+                 if(appState.notificationHistory.length > 0) {
+                    showMarketUpdateBanner(appState.notificationHistory[0]);
+                 }
+                 return; 
+            }
+            
+            // Fetch Coin News/Updates (Mocked to adhere to the 12-hour interval constraint)
+            try {
+                const response = await fetch(`${COINGECKO_API}/coins/bitcoin/market_chart?vs_currency=usd&days=1`);
+                if (!response.ok) throw new Error('Failed to fetch data for news generation');
+                const data = await response.json();
+                
+                let marketCondition = "stable";
+                if (data.prices.length > 0) {
+                    const priceDiff = data.prices[data.prices.length - 1][1] - data.prices[0][1];
+                    if (priceDiff / data.prices[0][1] > 0.03) marketCondition = "bullish";
+                    else if (priceDiff / data.prices[0][1] < -0.03) marketCondition = "bearish";
+                }
+
+                const newsTitle = `Daily Market Update: ${marketCondition.toUpperCase()} TREND`;
+                const newsMessage = marketCondition === 'bullish' 
+                    ? `Market trending up! Major tokens have seen significant gains in the last 24 hours. AI strategies advised to be active.`
+                    : marketCondition === 'bearish'
+                    ? `Caution: Market showing bearish signals. Volatility is high. Review your AI strategy settings.`
+                    : `The market remains stable. Good time for balanced AI trading.`
+                
+                const newNotification = {
+                    title: newsTitle,
+                    message: newsMessage,
+                    timestamp: now
+                };
+
+                appState.notificationHistory.unshift(newNotification);
+                appState.lastMarketUpdateTimestamp = now;
+                saveState();
+                
+                // Show Banner/Pop-up
+                if (appState.settings.notificationsOn) {
+                    showMarketUpdateBanner(newNotification);
+                    // Also show pop-up on first registration
+                    if (appState.activities[0]?.desc.includes('New account created')) {
+                        setTimeout(() => showAccountSavePopup(), 5000); // 5 seconds after login
+                    }
+                }
+
+                // If on notifications page, re-render
+                if (appState.currentPage === 'notificationsPage') renderNotificationsUI();
+
+            } catch (error) {
+                console.error("Error generating market news:", error);
+            }
+        }
+        
+        function showMarketUpdateBanner(notification) {
+            const banner = document.getElementById('marketUpdateBanner');
+            if (appState.settings.notificationsOn && appState.isLoggedIn) {
+                 document.getElementById('marketUpdateText').textContent = `${notification.title}: ${notification.message.substring(0, 50)}...`;
+                 banner.classList.remove('hidden');
+            } else {
+                 banner.classList.add('hidden');
+            }
+        }
+        
+        function showAccountSavePopup() {
+            showModal('Save Account Details', 
+                `Welcome! Your 10-digit Account ID (${appState.userId}) is crucial for recovery and login. Please secure your account now.`, 
+                `<button onclick="showPage('accountDetailsPage'); hideModal()" class="w-full py-2 accent-btn rounded-lg font-semibold">Secure Account</button>`);
+        }
+
+        // =======================================================
+        // 14. INITIALIZATION AND EVENT HANDLERS
+        // =======================================================
+        
+        function initializeApp() {
+            loadState(); // Load state before anything else
+            setupPwa();  // Set up PWA/Service Worker
+
+            // Global navigation click handler
+            document.querySelectorAll('.nav-tab').forEach(button => {
+                button.onclick = (e) => showPage(e.currentTarget.dataset.page);
+            });
+            
+            // Landing page actions
+            document.getElementById('landingMoreBtn')?.addEventListener('click', (e) => {
+                document.getElementById('landingMoreMenu')?.classList.toggle('hidden');
+                e.stopPropagation();
+            });
+            document.getElementById('confirmIDLoginBtn').onclick = loginWithID;
+            document.getElementById('walletConnectBtn').onclick = connectWallet;
+            document.getElementById('manualConnectBtn').onclick = manualConnect;
+            document.getElementById('confirmConnectionBtn').onclick = confirmWalletConnection;
+
+            // Header/Menu actions
+            document.getElementById('moreBtn')?.addEventListener('click', (e) => {
+                document.getElementById('moreMenu')?.classList.toggle('hidden');
+                e.stopPropagation();
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#moreBtn')) closeMoreMenu();
+                if (!e.target.closest('#landingMoreBtn')) closeLandingMoreMenu();
+                if (!e.target.closest('#selectNetworkBtn') && !e.target.closest('#withdrawalNetworkDropdown')) {
+                    document.getElementById('withdrawalNetworkDropdown')?.classList.add('hidden');
+                }
+            });
+
+            // Settings listeners
+            document.getElementById('notificationToggle').addEventListener('change', (e) => {
+                appState.settings.notificationsOn = e.target.checked;
+                document.getElementById('notificationsPageToggle').checked = e.target.checked;
+                saveState();
+                showMessage(`Notifications turned ${e.target.checked ? 'ON' : 'OFF'}.`);
+            });
+            document.getElementById('notificationsPageToggle').addEventListener('change', (e) => {
+                appState.settings.notificationsOn = e.target.checked;
+                document.getElementById('notificationToggle').checked = e.target.checked;
+                saveState();
+                showMessage(`Notifications turned ${e.target.checked ? 'ON' : 'OFF'}.`);
+            });
+            document.getElementById('strategySelect').addEventListener('change', (e) => {
+                appState.settings.strategy = e.target.value;
+                saveState();
+                showMessage(`AI strategy set to ${e.target.value}.`);
+            });
+
+            // Initial data load and view setup
+            fetchMarketData();
+            
+            // Set initial page based on persistence
+            const initialPage = appState.isLoggedIn ? appState.currentPage : 'landingPage';
+            showPage(initialPage, true);
+            
+            // Start persistent timers
+            if (appState.isLoggedIn) {
+                if (appState.trade.active) startTradeCountdown();
+                if (appState.withdrawal.status === 'Processing') startWithdrawalCountdown();
+                checkWithdrawalSuspension();
+            }
+
+            // Load charts if logged in and page is home/trade (will re-init on showPage)
+            if (appState.isLoggedIn && (initialPage === 'home' || initialPage === 'tradePage' || initialPage === 'earningsPage')) {
+                initializeTradingViewChart('tvchart', TRADINGVIEW_SYMBOL);
+                initializeTradingViewChart('tradeLiveChart', appState.trade.asset);
+                initializeTradingViewChart('earningsLiveChart', appState.trade.asset);
+            }
+            
+            // Periodic background tasks
+            setInterval(() => {
+                if (appState.isLoggedIn) {
+                    renderHomeUI(); // Updates balance, holdings, activities, suspension banner
+                }
+            }, 5000); // UI refresh every 5s
+
+            setInterval(fetchMarketData, 60000); // Market data refresh every 60s
+            setInterval(loadDailyMarketUpdates, 12 * 60 * 60 * 1000); // News check every 12 hours
+            
+            // Initial call for daily updates (will check timestamp)
+            loadDailyMarketUpdates(); 
+        }
+
+        window.onload = initializeApp;
+
+    </script>
+</body>
+</html>
