@@ -833,152 +833,211 @@
         </div>
     </div>
     
-    <!-- 4. HOME PAGE -->
-    <!-- Regenerated mobile-style Homepage section (Binance-inspired layout) -->
-<div id="homePage" class="page" style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #E6EEF3;">
-
+    <!-- 4. HOME PAGE -->  
+<div id="homePage" class="page">  
     <div class="container">
-        <!-- Account Summary -->
-        <div class="card mb-3" style="padding-bottom:12px;">
-            <div class="flex items-center justify-between mb-2">
-                <div>
-                    <p class="text-sm text-secondary" style="margin:0 0 4px 0;">Account ID</p>
-                    <p id="homeAccountId" class="font-mono text-yellow" style="font-size: 16px; font-weight: 700; margin:0;">Loading...</p>
-                </div>
-                <button onclick="copyAccountId()" class="btn-icon" aria-label="Copy Account ID" title="Copy Account ID">
-                    <!-- small copy / wallet card svg -->
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="7" width="18" height="13" rx="2" ry="2"></rect>
-                        <path d="M16 3v4"></path>
-                        <path d="M8 3v4"></path>
-                    </svg>
-                </button>
-            </div>
 
-            <div class="mb-2">
-                <p class="text-sm text-secondary" style="margin:0 0 6px 0;">Total Balance</p>
-                <h2 id="homeTotalBalance" style="font-size: 32px; font-weight: 800; color: var(--accent-yellow, #F0B90B); margin:0;">$0.00</h2>
-            </div>
+<div class="app" role="application" aria-label="Wallet Home">  
+    <header class="app-header">  
+      <div class="brand" aria-hidden="true">  
+        <div class="logo">W</div>  
+        <div>  
+          <h1>Wallet</h1>  
+          <p>Overview</p>  
+        </div>  
+      </div>  <div style="display:flex;gap:8px;align-items:center">  
+    <button class="btn-icon" title="Notifications" aria-label="Notifications">  
+      <!-- bell -->  
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+        <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"></path>  
+        <path d="M9.5 21a2.5 2.5 0 005 0"></path>  
+      </svg>  
+    </button>  
+    <button class="btn-icon" onclick="copyAccountId()" title="Copy Account ID" aria-label="Copy Account ID">  
+      <!-- copy icon -->  
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+        <rect x="9" y="9" width="13" height="13" rx="2"></rect>  
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>  
+      </svg>  
+    </button>  
+  </div>  
+</header>  
 
-            <div class="grid grid-cols-3 gap-2" style="margin-top:12px;">
-                <div>
-                    <p class="text-xs text-secondary" style="margin:0 0 6px 0;">Trade Balance</p>
-                    <p id="homeTradeBalance" style="font-weight: 600; margin:0;">$0.00</p>
-                </div>
-                <div>
-                    <p class="text-xs text-secondary" style="margin:0 0 6px 0;">Wallet Balance</p>
-                    <p id="homeWalletBalance" style="font-weight: 600; margin:0;">$0.00</p>
-                </div>
-                <div>
-                    <p class="text-xs text-secondary" style="margin:0 0 6px 0;">Total Earnings</p>
-                    <p id="homeTotalEarnings" style="font-weight: 600; margin:0;" class="text-green">$0.00</p>
-                </div>
-            </div>
-        </div>
+<main>  
+  <!-- Account card -->  
+  <section class="card" aria-labelledby="account-summary">  
+    <div id="account-summary" class="summary">  
+      <div class="acct-left">  
+        <div class="acct-info">  
+          <p class="small">Account ID</p>  
+          <p id="homeAccountId" class="id">Loading...</p>  
+        </div>  
+      </div>  
 
-        <!-- Quick Actions (kept in single line; reader SVG icons + labels) -->
-        <div class="quick-actions-row mb-3" role="toolbar" aria-label="Quick actions">
-            <!-- Deposit -->
-            <button onclick="showPage('depositPage')" class="quick-action" aria-label="Deposit" title="Deposit">
-                <div class="qa-icon" aria-hidden="true">
-                    <!-- wallet + reader pack SVG -->
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="2" y="6" width="20" height="12" rx="2" stroke="#CFE7FF" stroke-width="1.2" fill="none"/>
-                        <path d="M6 10h8" stroke="#CFE7FF" stroke-width="1.4" stroke-linecap="round"/>
-                        <circle cx="18.5" cy="12" r="1.6" fill="#F0B90B"/>
-                        <!-- small reader/pack badge top-right -->
-                        <g transform="translate(12, -4)">
-                            <rect x="6" y="2" width="8" height="6" rx="1" fill="#0F2333"/>
-                            <path d="M8 4h5" stroke="#F0B90B" stroke-width="1.2" stroke-linecap="round"/>
-                            <path d="M8 6h5" stroke="#9fb2c9" stroke-width="0.9" stroke-linecap="round"/>
-                        </g>
-                    </svg>
-                </div>
-                <div class="qa-title">Deposit</div>
-                <div class="qa-sub">Add funds</div>
-            </button>
+      <div style="text-align:right">  
+        <p class="small">Total Balance</p>  
+        <p id="homeTotalBalance" class="value">$0.00</p>  
+      </div>  
+    </div>  
 
-            <!-- Withdraw -->
-            <button onclick="showPage('withdrawPage')" class="quick-action" aria-label="Withdraw" title="Withdraw">
-                <div class="qa-icon" aria-hidden="true">
-                    <!-- send-out + reader pack SVG -->
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M17 3h4v4" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M7 11L17 1" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <!-- reader badge -->
-                        <g transform="translate(12, -6)">
-                            <rect x="6" y="2" width="8" height="6" rx="1" fill="#0F2333"/>
-                            <path d="M8 4h5" stroke="#F0B90B" stroke-width="1.2" stroke-linecap="round"/>
-                            <path d="M8 6h5" stroke="#9fb2c9" stroke-width="0.9" stroke-linecap="round"/>
-                        </g>
-                    </svg>
-                </div>
-                <div class="qa-title">Withdraw</div>
-                <div class="qa-sub">Cash out</div>
-            </button>
+    <div class="balances-grid" aria-hidden="false" style="margin-top:12px;">  
+      <div>  
+        <p class="item">Trade Balance</p>  
+        <p id="homeTradeBalance" class="value">$0.00</p>  
+      </div>  
+      <div>  
+        <p class="item">Wallet Balance</p>  
+        <p id="homeWalletBalance" class="value">$0.00</p>  
+      </div>  
+      <div>  
+        <p class="item">Total Earnings</p>  
+        <p id="homeTotalEarnings" class="value" style="color:var(--green)">$0.00</p>  
+      </div>  
+    </div>  
+  </section>  
 
-            <!-- Transfer -->
-            <button onclick="showPage('transferPage')" class="quick-action" aria-label="Transfer" title="Transfer">
-                <div class="qa-icon" aria-hidden="true">
-                    <!-- swap/transfer + reader pack SVG -->
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 7h13l-3-3" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M20 17H7l3 3" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <!-- reader badge -->
-                        <g transform="translate(12, -6)">
-                            <rect x="6" y="2" width="8" height="6" rx="1" fill="#0F2333"/>
-                            <path d="M8 4h5" stroke="#F0B90B" stroke-width="1.2" stroke-linecap="round"/>
-                            <path d="M8 6h5" stroke="#9fb2c9" stroke-width="0.9" stroke-linecap="round"/>
-                        </g>
-                    </svg>
-                </div>
-                <div class="qa-title">Transfer</div>
-                <div class="qa-sub">Move funds</div>
-            </button>
+  <!-- Quick actions single-line (Deposit, Withdraw, Transfer, Auto-Trade) -->  
+  <section style="margin-top:14px;">  
+    <div class="quick-actions" role="toolbar" aria-label="Quick actions">  
+      <!-- Deposit -->  
+      <button class="qa-btn" onclick="showPage('depositPage')" role="button" aria-label="Deposit — Add funds">  
+        <div class="qa-icon" aria-hidden="true">  
+          <!-- wallet + plus -->  
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3BA2F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+            <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"></path>  
+            <path d="M16 3v4"></path>  
+            <path d="M18 5h-4"></path>  
+          </svg>  
+        </div>  
+        <div class="qa-content">  
+          <div class="qa-title">Deposit</div>  
+          <div class="qa-sub">Add funds</div>  
+        </div>  
+        <div class="qa-badge" aria-hidden="true">  
+          <div class="badge">  
+            <!-- reader-like SVG pack (stacked squares) -->  
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">  
+              <rect x="3" y="4" width="18" height="6" rx="1"></rect>  
+              <rect x="3" y="14" width="12" height="6" rx="1"></rect>  
+            </svg>  
+            <span style="opacity:0.9;font-weight:700;color:var(--accent-yellow);">USD</span>  
+          </div>  
+        </div>  
+      </button>  
 
-            <!-- Auto-Trade -->
-            <button onclick="showPage('tradePage')" class="quick-action" aria-label="Auto-Trade" title="Auto-Trade">
-                <div class="qa-icon" aria-hidden="true">
-                    <!-- chart + reader pack SVG -->
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 3v18h18" stroke="#CFE7FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M7 14l3-3 4 5 5-9" stroke="#CFE7FF" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                        <!-- reader badge -->
-                        <g transform="translate(12, -6)">
-                            <rect x="6" y="2" width="8" height="6" rx="1" fill="#0F2333"/>
-                            <path d="M8 4h5" stroke="#F0B90B" stroke-width="1.2" stroke-linecap="round"/>
-                            <path d="M8 6h5" stroke="#9fb2c9" stroke-width="0.9" stroke-linecap="round"/>
-                        </g>
-                    </svg>
-                </div>
-                <div class="qa-title">Auto-Trade</div>
-                <div class="qa-sub">Start trading</div>
-            </button>
-        </div>
+      <!-- Withdraw -->  
+      <button class="qa-btn" onclick="showPage('withdrawPage')" role="button" aria-label="Withdraw — Cash out">  
+        <div class="qa-icon" aria-hidden="true">  
+          <!-- arrow out -->  
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8C6A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+            <path d="M17 7l5 5-5 5"></path>  
+            <path d="M2 12h20"></path>  
+          </svg>  
+        </div>  
+        <div class="qa-content">  
+          <div class="qa-title">Withdraw</div>  
+          <div class="qa-sub">Cash out</div>  
+        </div>  
+        <div class="qa-badge" aria-hidden="true">  
+          <div class="badge">  
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">  
+              <path d="M4 7h16v10H4z"></path>  
+            </svg>  
+            <span style="opacity:0.9">Bank</span>  
+          </div>  
+        </div>  
+      </button>  
 
-        <!-- Trading View Chart -->
-        <div class="card mb-3">
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Market Chart</h3>
-            <div id="homeChartContainer" class="tv-chart-container" aria-hidden="true">
-                <!-- Placeholder for TradingView widget -->
-                <span style="opacity:.9;">Loading chart…</span>
-            </div>
-        </div>
+      <!-- Transfer -->  
+      <button class="qa-btn" onclick="showPage('transferPage')" role="button" aria-label="Transfer — Move funds">  
+        <div class="qa-icon" aria-hidden="true">  
+          <!-- transfer arrows -->  
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#71C9FF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+            <path d="M17 3l4 4-4 4"></path>  
+            <path d="M21 7H7"></path>  
+            <path d="M7 21l-4-4 4-4"></path>  
+            <path d="M3 17h14"></path>  
+          </svg>  
+        </div>  
+        <div class="qa-content">  
+          <div class="qa-title">Transfer</div>  
+          <div class="qa-sub">Move funds</div>  
+        </div>  
+        <div class="qa-badge" aria-hidden="true">  
+          <div class="badge">  
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">  
+              <path d="M12 4v16"></path>  
+              <path d="M8 8h8"></path>  
+            </svg>  
+            <span style="opacity:0.9">Internal</span>  
+          </div>  
+        </div>  
+      </button>  
 
-        <!-- Recent Activity -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-2">
-                <h3 style="font-size: 16px; font-weight: 700;">Recent Activity</h3>
-                <button onclick="showPage('activitiesPage')" style="background: none; border: none; color: #F0B90B; cursor: pointer; font-size: 12px;" aria-label="View all activities">View All</button>
-            </div>
-            <div id="homeRecentActivity" aria-live="polite">
-                <p class="text-sm text-secondary text-center" style="padding: 20px; margin:0;">No recent activity</p>
-            </div>
-        </div>
-    </div>
-</div>
-                
+      <!-- Auto-Trade -->  
+      <button class="qa-btn" onclick="showPage('tradePage')" role="button" aria-label="Auto-Trade — Start trading">  
+        <div class="qa-icon" aria-hidden="true">  
+          <!-- chart -->  
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8AFF9A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">  
+            <path d="M3 3v18h18"></path>  
+            <path d="M7 13l3-3 4 4 5-8"></path>  
+          </svg>  
+        </div>  
+        <div class="qa-content">  
+          <div class="qa-title">Auto-Trade</div>  
+          <div class="qa-sub">Start trading</div>  
+        </div>  
+        <div class="qa-badge" aria-hidden="true">  
+          <div class="badge">  
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">  
+              <path d="M4 19h16"></path>  
+              <path d="M8 12h8"></path>  
+            </svg>  
+            <span style="opacity:0.9">Bot</span>  
+          </div>  
+        </div>  
+      </button>  
+    </div>  
+  </section>  
+
+  <!-- Chart card -->  
+  <section class="card" style="margin-top:14px;">  
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">  
+      <h3 style="margin:0;font-size:15px;font-weight:700;">Market Chart</h3>  
+      <div style="display:flex;gap:8px;align-items:center">  
+        <button class="btn-icon" title="Change Pair" aria-label="Change pair">  
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">  
+            <path d="M12 5v14"></path>  
+            <path d="M5 12h14"></path>  
+          </svg>  
+        </button>  
+        <button class="btn-icon" title="Timeframe" aria-label="Timeframe">  
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">  
+            <circle cx="12" cy="12" r="8"></circle>  
+            <path d="M12 8v4l3 3"></path>  
+          </svg>  
+        </button>  
+      </div>  
+    </div>  
+    <div id="homeChartContainer" class="tv-chart-container" role="img" aria-label="Market chart placeholder">  
+      Chart placeholder  
+    </div>  
+  </section>  
+
+  <!-- Recent Activity -->  
+  <section class="card recent-activity" style="margin-top:14px;">  
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">  
+      <h3 style="margin:0;font-size:15px;font-weight:700;">Recent Activity</h3>  
+      <button onclick="showPage('activitiesPage')" style="background:none;border:0;color:var(--accent-yellow);cursor:pointer;font-size:12px">View All</button>  
+    </div>  
+
+    <div id="homeRecentActivity" aria-live="polite">  
+      <div class="empty">No recent activity</div>  
+    </div>  
+  </section>  
+</main>
+
+                </div>      
     
     <!-- 5. DEPOSIT PAGE -->
     <div id="depositPage" class="page">
