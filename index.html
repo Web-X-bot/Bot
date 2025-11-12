@@ -627,15 +627,13 @@
         </div>
         
         <!-- More Menu Dropdown -->
-        <div id="moreMenu" class="modal-overlay">
-            <div class="modal" style="max-width: 300px;">
-                <button onclick="showPage('walletDetailsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Connected Wallet</button>
-                <button onclick="showPage('settingsPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Settings</button>
-                <button onclick="showPage('supportPage'); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Support</button>
-                <button onclick="closeAccount(); toggleMoreMenu()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--red); text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 4px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Close Account</button>
-                <button onclick="disconnectWallet()" style="width: 100%; padding: 12px; background: none; border: none; color: var(--accent-yellow); text-align: left; cursor: pointer; border-radius: 8px;" onmouseover="this.style.background='var(--glass-bg)'" onmouseout="this.style.background='none'">Disconnect</button>
-            </div>
-        </div>
+<div id="moreMenu" class="dropdown-menu">
+    <button onclick="showPage('walletDetailsPage'); toggleMoreMenu()">Connected Wallet</button>
+    <button onclick="showPage('settingsPage'); toggleMoreMenu()">Settings</button>
+    <button onclick="showPage('supportPage'); toggleMoreMenu()">Support</button>
+    <button onclick="closeAccount(); toggleMoreMenu()" class="danger">Close Account</button>
+    <button onclick="disconnectWallet(); toggleMoreMenu()" class="accent">Disconnect</button>
+</div>
     </header>
     
     <!-- Footer Navigation (Hidden on Landing Page) -->
